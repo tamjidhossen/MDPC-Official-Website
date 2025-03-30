@@ -5,7 +5,6 @@ import HomePage from "./components/Home/HomePage";
 import LeaderboardPage from "./components/Leaderboard/LeaderboardPage";
 import ContestsPage from "./components/Contests/ContestsPage";
 import ResourcesPage from "./components/Resources/ResourcesPage";
-import BlogsPage from "./components/Blogs/BlogsPage";
 import EventsPage from "./components/Events/EventsPage";
 import LoginPage from "./components/User/LoginPage";
 import RegisterPage from "./components/User/RegisterPage";
@@ -33,7 +32,6 @@ const router = createBrowserRouter(
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="resources/dynamic-programming" element={<DynamicProgrammingResource />} />
         <Route path="resources/cp-roadmap" element={<CPRoadmapResource />} />
-        <Route path="blogs" element={<BlogsPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />

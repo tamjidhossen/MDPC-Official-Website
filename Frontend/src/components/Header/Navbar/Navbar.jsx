@@ -78,9 +78,8 @@ const Navbar = () => {
     { title: "Home", path: "/" },
     { title: "Leaderboard", path: "/leaderboard" },
     { title: "Contests", path: "/contests" },
-    { title: "Resources", path: "/resources" },
-    { title: "Blogs", path: "/blogs" },
     { title: "Events", path: "/events" },
+    { title: "Resources", path: "/resources" },
     { title: "Join", path: "/join" },
   ];
 
