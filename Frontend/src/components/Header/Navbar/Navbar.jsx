@@ -81,6 +81,7 @@ const Navbar = () => {
     { title: "Resources", path: "/resources" },
     { title: "Blogs", path: "/blogs" },
     { title: "Events", path: "/events" },
+    { title: "Join", path: "/join" },
   ];
 
   const isActive = (path) => {
