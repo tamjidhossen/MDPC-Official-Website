@@ -58,7 +58,7 @@ const formSchema = z.object({
     ),
 });
 
-const RegistrationPage = () => {
+const JoinPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -241,13 +241,6 @@ const RegistrationPage = () => {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="CSE">CSE</SelectItem>
-                              <SelectItem value="EEE">EEE</SelectItem>
-                              <SelectItem value="ME">ME</SelectItem>
-                              <SelectItem value="CE">CE</SelectItem>
-                              <SelectItem value="IPE">IPE</SelectItem>
-                              <SelectItem value="TEX">TEX</SelectItem>
-                              <SelectItem value="PME">PME</SelectItem>
-                              <SelectItem value="ARCH">ARCH</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -417,4 +410,4 @@ const RegistrationPage = () => {
   );
 };
 
-export default RegistrationPage;
+export default JoinPage;

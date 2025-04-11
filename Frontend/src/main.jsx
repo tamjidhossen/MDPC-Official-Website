@@ -11,7 +11,7 @@ import RegisterPage from "./components/User/RegisterPage";
 import DashboardPage from "./components/User/Dashboard/DashboardPage";
 import DynamicProgrammingResource from "./components/Resources/DynamicProgrammingResource";
 import CPRoadmapResource from "./components/Resources/CPRoadmapResource";
-import RegistrationPage from "./components/Registration/RegistrationPage";
+import JoinPage from "./components/Join/JoinPage";
 
 import Layout from "./Layout";
 
@@ -36,7 +36,7 @@ const router = createBrowserRouter(
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="user/dashboard" element={<DashboardPage />} />
-        <Route path="join" element={<RegistrationPage />} />
+        <Route path="join" element={<JoinPage />} />
       </Route>
       <Route path="/admin">
         {/* <Route path="register" element={<AdminRegister />} />
