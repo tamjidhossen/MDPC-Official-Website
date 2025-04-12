@@ -13,6 +13,11 @@ import DynamicProgrammingResource from "./components/Resources/DynamicProgrammin
 import CPRoadmapResource from "./components/Resources/CPRoadmapResource";
 import JoinPage from "./components/Join/JoinPage";
 
+// Admin imports
+import AdminLoginPage from "./components/Admin/LoginPage";
+import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
+import ProtectedRoute from "./components/Admin/ProtectedRoute";
+
 import Layout from "./Layout";
 
 import {
@@ -30,7 +35,10 @@ const router = createBrowserRouter(
         <Route path="leaderboard" element={<LeaderboardPage />} />
         <Route path="contests" element={<ContestsPage />} />
         <Route path="resources" element={<ResourcesPage />} />
-        <Route path="resources/dynamic-programming" element={<DynamicProgrammingResource />} />
+        <Route
+          path="resources/dynamic-programming"
+          element={<DynamicProgrammingResource />}
+        />
         <Route path="resources/cp-roadmap" element={<CPRoadmapResource />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="login" element={<LoginPage />} />
@@ -39,16 +47,15 @@ const router = createBrowserRouter(
         <Route path="join" element={<JoinPage />} />
       </Route>
       <Route path="/admin">
-        {/* <Route path="register" element={<AdminRegister />} />
-        <Route path="login" element={<AdminLogin />} />
+        <Route path="login" element={<AdminLoginPage />} />
         <Route
           path="dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AdminDashboardPage />
             </ProtectedRoute>
           }
-        /> */}
+        />
       </Route>
     </>
   )
