@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Official backend for MDPC",
   "type": "module",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/server.js"
   },
   "author": "Tamjid Hossen",
   "license": "ISC",
