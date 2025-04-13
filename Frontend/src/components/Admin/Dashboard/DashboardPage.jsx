@@ -35,7 +35,7 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen bg-background flex">
       <DashboardSidebar
         activePage={activePage}
         setActivePage={setActivePage}
@@ -43,8 +43,8 @@ const DashboardPage = () => {
       />
 
       {/* Main content */}
-      <main className="md:pl-64 transition-all duration-300">
-        <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+      <main className="flex-1 transition-all duration-300">
+        <div className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto">
           {renderSection()}
         </div>
       </main>
