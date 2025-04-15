@@ -22,43 +22,25 @@ const userSchema = new mongoose.Schema(
       minLength: [8, "Password must be at least 8 characters"],
       select: false,
     },
-    studentId: {
-      type: String,
-      required: [true, "Student ID is required"],
-      unique: true,
-    },
-    department: {
-      type: String,
-      required: [true, "Department is required"],
-    },
-    session: {
-      type: String,
-      required: [true, "Session is required"],
-    },
     programmingHandles: {
       codeforces: {
         type: String,
       },
-      vjudge: {
-        type: String,
-      },
+    },
+    avatar: {
+      type: String, // Path to the avatar: /uploads/images/users/[filename]
     },
     role: {
       type: String,
       enum: ["user", "admin"],
       default: "user",
     },
-    status: {
-      type: String,
-      enum: ["pending", "active", "inactive"],
-      default: "pending",
-    },
-    joinDate: {
-      type: Date,
-      default: Date.now,
-    },
     refreshToken: {
       type: String,
+    },
+    isMember: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
@@ -90,6 +72,7 @@ userSchema.methods.generateAccessToken = function () {
       email: this.email,
       name: this.name,
       role: this.role,
+      isMember: this.isMember,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
