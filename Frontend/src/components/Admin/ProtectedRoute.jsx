@@ -1,21 +1,25 @@
 import { Navigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const ProtectedRoute = ({ children }) => {
-  // Check if user is authenticated
-  // In a real application, you would check for a token in localStorage or cookies
-  // For now, we'll use a simple check to see if the user is logged in
-  const isAuthenticated = () => {
-    // This is a simplified example
-    // In a real app, you would validate the token, check expiration, etc.
-    return localStorage.getItem("adminAuthenticated") === "true";
-  };
+  const { user, loading, isAdmin } = useAuth();
 
-  // If not authenticated, redirect to login page
-  if (!isAuthenticated()) {
-    // return <Navigate to="/admin/login" replace />;
+  // Show loading state if auth state is still being determined
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
-  // If authenticated, render the children (protected component)
+  // Check if user is authenticated and has admin role
+  if (!user || !isAdmin()) {
+    // Redirect to login page if not authenticated or not admin
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  // If authenticated and admin, render the children (protected component)
   return children;
 };
 

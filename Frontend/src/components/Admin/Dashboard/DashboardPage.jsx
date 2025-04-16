@@ -9,7 +9,7 @@ import MemberDatabaseSection from "./sections/MemberDatabaseSection";
 import EventManagementSection from "./sections/EventManagementSection";
 import ContestManagementSection from "./sections/ContestManagementSection";
 import RegistrationSettingsSection from "./sections/RegistrationSettingsSection";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 
 const DashboardPage = () => {
   const [activePage, setActivePage] = useState("overview");

@@ -27,42 +27,60 @@ import {
   createRoutesFromElements,
 } from "react-router-dom";
 
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <>
-      <Route path="/" element={<Layout />}>
-        <Route path="" element={<HomePage />} />
-        <Route path="leaderboard" element={<LeaderboardPage />} />
-        <Route path="contests" element={<ContestsPage />} />
-        <Route path="resources" element={<ResourcesPage />} />
-        <Route
-          path="resources/dynamic-programming"
-          element={<DynamicProgrammingResource />}
-        />
-        <Route path="resources/cp-roadmap" element={<CPRoadmapResource />} />
-        <Route path="events" element={<EventsPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="user/dashboard" element={<DashboardPage />} />
-        <Route path="join" element={<JoinPage />} />
-      </Route>
-      <Route path="/admin">
-        <Route path="login" element={<AdminLoginPage />} />
-        <Route
-          path="dashboard"
-          element={
-            <ProtectedRoute>
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-    </>
-  )
-);
+import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./components/theme-provider";
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>
-);
+// Define the app with routes
+const AppWithRoutes = () => {
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <>
+        <Route path="/" element={<Layout />}>
+          <Route path="" element={<HomePage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="contests" element={<ContestsPage />} />
+          <Route path="resources" element={<ResourcesPage />} />
+          <Route
+            path="resources/dynamic-programming"
+            element={<DynamicProgrammingResource />}
+          />
+          <Route path="resources/cp-roadmap" element={<CPRoadmapResource />} />
+          <Route path="events" element={<EventsPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="user/dashboard" element={<DashboardPage />} />
+          <Route path="join" element={<JoinPage />} />
+        </Route>
+        <Route path="/admin">
+          <Route path="login" element={<AdminLoginPage />} />
+          <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+      </>
+    )
+  );
+
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
+};
+
+const Root = () => {
+  return (
+    <StrictMode>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <AppWithRoutes />
+      </ThemeProvider>
+    </StrictMode>
+  );
+};
+
+createRoot(document.getElementById("root")).render(<Root />);

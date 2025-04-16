@@ -6,6 +6,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // This is important for cookies to be sent and received
 });
 
 // Add response interceptor for error handling
@@ -47,7 +48,31 @@ export const codeforcesApi = {
 
 // User API endpoints
 export const userApi = {
-  // Add user-related API calls here
+  // Login user
+  login: async (credentials) => {
+    const response = await apiClient.post("/users/login", credentials);
+    return response.data;
+  },
+
+  // Logout user
+  logout: async () => {
+    const response = await apiClient.post("/users/logout");
+    return response.data;
+  },
+
+  // Get current user profile
+  getProfile: async () => {
+    const response = await apiClient.get("/users/profile");
+    return response.data;
+  },
+
+  // Refresh access token
+  refreshToken: async (refreshToken) => {
+    const response = await apiClient.post("/users/refresh-token", {
+      refreshToken,
+    });
+    return response.data;
+  },
 };
 
 // Blog API endpoints

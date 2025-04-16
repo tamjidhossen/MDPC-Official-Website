@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,9 +15,9 @@ import {
   Settings,
   LogOut,
   Menu,
-  ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const DashboardSidebar = ({
   activePage,
@@ -26,10 +26,15 @@ const DashboardSidebar = ({
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
 
-  // Handle logout - clear authentication
+  // Display actual user name if available
+  const displayName = user?.name || userName;
+
+  // Handle logout - use auth context with navigate function
   const handleLogout = () => {
-    localStorage.removeItem("adminAuthenticated");
+    logout(navigate);
   };
 
   const menuItems = [
@@ -107,10 +112,10 @@ const DashboardSidebar = ({
             <div className="flex items-center justify-between pb-4">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                  {userName.charAt(0)}
+                  {displayName.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{userName}</p>
+                  <p className="text-sm font-medium">{displayName}</p>
                   <p className="text-xs text-muted-foreground">Administrator</p>
                 </div>
               </div>
@@ -120,9 +125,7 @@ const DashboardSidebar = ({
               className="w-full justify-start"
               onClick={handleLogout}
             >
-              <Link to="/admin/login">
-                <LogOut className="h-4 w-4 mr-2" /> Log out
-              </Link>
+              <LogOut className="h-4 w-4 mr-2" /> Log out
             </Button>
           </div>
         </div>
@@ -184,11 +187,11 @@ const DashboardSidebar = ({
             className={cn("flex items-center gap-2", isCollapsed && "flex-col")}
           >
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              {userName.charAt(0)}
+              {displayName.charAt(0)}
             </div>
             {!isCollapsed && (
               <div>
-                <p className="text-sm font-medium">{userName}</p>
+                <p className="text-sm font-medium">{displayName}</p>
                 <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
             )}
@@ -196,10 +199,8 @@ const DashboardSidebar = ({
 
           {!isCollapsed && (
             <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <Link to="/admin/login">
-                <LogOut className="h-4 w-4" />
-                <span className="sr-only">Log out</span>
-              </Link>
+              <LogOut className="h-4 w-4" />
+              <span className="sr-only">Log out</span>
             </Button>
           )}
         </div>
