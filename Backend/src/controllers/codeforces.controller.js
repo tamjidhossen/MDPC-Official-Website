@@ -9,7 +9,7 @@ import {
 
 // Cache duration constants (in milliseconds)
 const CACHE_DURATIONS = {
-  LEADERBOARD: 60 * 60 * 1000, // 1 hour
+  LEADERBOARD:  6 * 60 * 60 * 1000, // 6 hour
   PROBLEM_DISTRIBUTION: 24 * 60 * 60 * 1000, // 24 hours
 };
 
