@@ -4,66 +4,50 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import codeforcesService from "../services/codeforces.service.js";
 
 // Get leaderboard data (Organization ranking, username, rating, rank, contests)
-// e.g., jkkniu with rank 63
 const getOrganizationLeaderboard = asyncHandler(async (req, res) => {
-  const organization = req.query.organization || "jkkniu";
+  const organization = req.query.organization || "Jatiya Kabi Kazi Nazrul Islam University";
+  const limit = parseInt(req.query.limit) || 20;
 
   try {
-    // For a real implementation, we would likely have pre-stored user handles from our org
-    // Here's a simple placeholder implementation for jkkniu users
-    const userHandles = [
-      "CuriousLearner",
-      "tamjid",
-      "codeforcesuser1",
-      "codeforcesuser2",
-    ];
+    // Fetch all rated users
+    const allUsers = await codeforcesService.getRatedUsers(false, true);
+    // console.log(allUsers.length) # 808960 -> this shit needs to be cached
+    // Filter users by organization (case-insensitive partial match)
+    const orgUsers = allUsers
+      .filter(
+        (user) =>
+          user.organization &&
+          user.organization.toLowerCase().includes(organization.toLowerCase())
+      )
+      .slice(0, limit);
 
-    // Get data for each user
-    const userData = await Promise.all(
-      userHandles.map(async (handle) => {
-        try {
-          const userInfoResult = await codeforcesService.getUserInfo(handle);
-          const userInfo = userInfoResult[0]; // API returns array of user objects
-          const ratingHistory =
-            await codeforcesService.getUserRatingHistory(handle);
+    if (orgUsers.length === 0) {
+      return res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            [],
+            `No users found for organization: ${organization}`
+          )
+        );
+    }
 
-          return {
-            handle: userInfo.handle,
-            rating: userInfo.rating || 0,
-            maxRating: userInfo.maxRating || 0,
-            rank: userInfo.rank || "unrated",
-            organization: userInfo.organization || "",
-            contestCount: ratingHistory.length,
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching data for user ${handle}:`,
-            error.message
-          );
-          return {
-            handle,
-            rating: 0,
-            maxRating: 0,
-            rank: "unrated",
-            organization: "",
-            contestCount: 0,
-            error: error.message,
-          };
-        }
-      })
-    );
-
-    // Sort by rating in descending order
-    const sortedUsers = userData
-      .filter((user) => !user.error)
-      .sort((a, b) => b.rating - a.rating);
+    const userData = orgUsers.map((user) => {
+      return {
+      handle: user.handle,
+      rating: user.rating || 0,
+      maxRating: user.maxRating || 0,
+      rank: user.rank || "unrated",
+      };
+    });
 
     return res
       .status(200)
       .json(
         new ApiResponse(
           200,
-          sortedUsers,
+          userData,
           "Organization leaderboard fetched successfully"
         )
       );
@@ -90,7 +74,7 @@ const getUserDashboard = asyncHandler(async (req, res) => {
     // Get rating history for graph
     const ratingHistory = await codeforcesService.getUserRatingHistory(handle);
 
-    // Get submission data for problem counts
+    // Get submission data for problem counts (fetch latest 500 submissions)
     const submissions = await codeforcesService.getUserSubmissions(handle, 500);
 
     // Process submissions for solved problems
@@ -103,7 +87,14 @@ const getUserDashboard = asyncHandler(async (req, res) => {
         const problemKey = `${sub.problem.contestId}-${sub.problem.index}`;
 
         // Track all-time solved problems
-        uniqueProblemsSolved.set(problemKey, true);
+        uniqueProblemsSolved.set(problemKey, {
+          name: sub.problem.name,
+          rating: sub.problem.rating || 0,
+          tags: sub.problem.tags || [],
+          contestId: sub.problem.contestId,
+          index: sub.problem.index,
+          solvedTime: sub.creationTimeSeconds,
+        });
 
         // Track last week solved problems
         if (sub.creationTimeSeconds * 1000 >= oneWeekAgo) {
@@ -112,9 +103,23 @@ const getUserDashboard = asyncHandler(async (req, res) => {
       }
     });
 
-    // Get recent contest performance (last 5)
-    const recentContests =
-      await codeforcesService.getUserRecentContests(handle);
+    // Analyze problems by rating
+    const ratingDistribution = {};
+    for (let rating = 800; rating <= 3500; rating += 100) {
+      ratingDistribution[rating] = 0;
+    }
+
+    Array.from(uniqueProblemsSolved.values()).forEach((problem) => {
+      if (problem.rating && ratingDistribution.hasOwnProperty(problem.rating)) {
+        ratingDistribution[problem.rating]++;
+      }
+    });
+
+    // Get recent contest performance
+    const recentContests = await codeforcesService.getUserRecentContests(
+      handle,
+      10
+    );
     const contests = await codeforcesService.getContestList();
 
     // Enrich recent contest data with contest names
@@ -123,6 +128,7 @@ const getUserDashboard = asyncHandler(async (req, res) => {
       contestMap.set(contest.id, {
         name: contest.name,
         startTimeSeconds: contest.startTimeSeconds,
+        type: contest.type,
       });
     });
 
@@ -139,6 +145,7 @@ const getUserDashboard = asyncHandler(async (req, res) => {
           oldRating: contest.oldRating,
           newRating: contest.newRating,
           ratingChange: contest.newRating - contest.oldRating,
+          contestType: contestInfo.type || "Unknown",
         };
       })
       .reverse(); // Most recent first
@@ -150,14 +157,23 @@ const getUserDashboard = asyncHandler(async (req, res) => {
         maxRating: userInfo.maxRating || 0,
         rank: userInfo.rank || "unrated",
         titlePhoto: userInfo.titlePhoto,
+        avatar: userInfo.avatar,
         contribution: userInfo.contribution || 0,
+        registrationTimeSeconds: userInfo.registrationTimeSeconds,
+        lastOnlineTimeSeconds: userInfo.lastOnlineTimeSeconds,
+        organization: userInfo.organization || "",
       },
       problemStats: {
         totalSolved: uniqueProblemsSolved.size,
         lastWeekSolved: lastWeekSolved.size,
+        ratingDistribution: ratingDistribution,
+        recentlySolved: Array.from(uniqueProblemsSolved.values())
+          .sort((a, b) => b.solvedTime - a.solvedTime)
+          .slice(0, 10),
       },
       contestStats: {
         totalParticipated: ratingHistory.length,
+        recentContests: enrichedRecentContests,
       },
       ratingHistory: ratingHistory.map((r) => ({
         contestId: r.contestId,
@@ -169,7 +185,6 @@ const getUserDashboard = asyncHandler(async (req, res) => {
         oldRating: r.oldRating,
         newRating: r.newRating,
       })),
-      recentContests: enrichedRecentContests,
     };
 
     return res
@@ -192,13 +207,19 @@ const getUserDashboard = asyncHandler(async (req, res) => {
 // Get problem distribution data (not user specific)
 const getProblemDistribution = asyncHandler(async (req, res) => {
   try {
-    const { index, contestType = "All Types", timing = "All Time" } = req.query;
+    const {
+      index,
+      contestType = "All Types",
+      timing = "All Time",
+      tags = "",
+    } = req.query;
 
     // Get problem distribution based on filters
     const distribution = await codeforcesService.getProblemDistribution({
       index,
       contestType,
       timing,
+      tags: tags ? tags.split(",") : undefined,
     });
 
     return res
@@ -218,4 +239,41 @@ const getProblemDistribution = asyncHandler(async (req, res) => {
   }
 });
 
-export { getOrganizationLeaderboard, getUserDashboard, getProblemDistribution };
+// Get contest list with optional filtering
+const getContestList = asyncHandler(async (req, res) => {
+  try {
+    const { gym = false, type } = req.query;
+    const showGym = gym === "true";
+
+    const contests = await codeforcesService.getContestList(showGym);
+
+    // Filter by contest type if specified
+    const filteredContests = type
+      ? contests.filter((contest) => contest.type === type.toUpperCase())
+      : contests;
+
+    // Return recent contests first
+    const sortedContests = filteredContests.sort(
+      (a, b) => b.startTimeSeconds - a.startTimeSeconds
+    );
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          sortedContests,
+          "Contest list fetched successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(500, "Failed to fetch contest list: " + error.message);
+  }
+});
+
+export {
+  getOrganizationLeaderboard,
+  getUserDashboard,
+  getProblemDistribution,
+  getContestList,
+};

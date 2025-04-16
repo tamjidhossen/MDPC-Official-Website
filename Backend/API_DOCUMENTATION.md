@@ -1535,9 +1535,9 @@ The API provides integration with the Codeforces platform to display user and pr
 - **URL**: `/codeforces/leaderboard`
 - **Method**: `GET`
 - **Authentication**: None
-- **Description**: Get leaderboard data for organization members (e.g., jkkniu)
+- **Description**: Get leaderboard data for organization members (e.g., Jatiya Kabi Kazi Nazrul Islam University)
 - **Query Parameters**:
-  - `organization`: Organization name (default: "jkkniu")
+  - `organization`: Organization name (default: "Jatiya Kabi Kazi Nazrul Islam University")
 - **Response**:
   ```json
   {
@@ -1548,16 +1548,14 @@ The API provides integration with the Codeforces platform to display user and pr
         "rating": 1842,
         "maxRating": 1950,
         "rank": "expert",
-        "organization": "jkkniu",
-        "contestCount": 25
+        "organization": "Jatiya Kabi Kazi Nazrul Islam University"
       },
       {
         "handle": "tamjid",
         "rating": 1560,
         "maxRating": 1602,
         "rank": "specialist",
-        "organization": "jkkniu",
-        "contestCount": 18
+        "organization": "Jatiya Kabi Kazi Nazrul Islam University"
       }
       // More users...
     ],

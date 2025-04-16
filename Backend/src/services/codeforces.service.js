@@ -1,63 +1,17 @@
 import axios from "axios";
-import crypto from "crypto";
 
 const CODEFORCES_API_BASE_URL = "https://codeforces.com/api";
 
 class CodeforcesService {
   constructor() {
-    this.apiKey = process.env.CODEFORCES_API_KEY;
-    this.apiSecret = process.env.CODEFORCES_API_SECRET;
     this.baseURL = CODEFORCES_API_BASE_URL;
-  }
-
-  // Helper method to generate API signature
-  generateApiSignature(methodName, params = {}) {
-    if (!this.apiKey || !this.apiSecret) {
-      return {}; // No auth needed for public endpoints
-    }
-
-    const rand = Math.random().toString(36).substring(2, 8); // Generate random 6 chars
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    // Add API key and time to params
-    params.apiKey = this.apiKey;
-    params.time = currentTime;
-
-    // Sort params alphabetically
-    const sortedParams = Object.entries(params)
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-      .reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {});
-
-    // Build query string
-    const queryString = Object.entries(sortedParams)
-      .map(([key, value]) => `${key}=${value}`)
-      .join("&");
-
-    // Create signature string
-    const signatureString = `${rand}/${methodName}?${queryString}#${this.apiSecret}`;
-
-    // Generate SHA-512 hash
-    const hash = crypto
-      .createHash("sha512")
-      .update(signatureString)
-      .digest("hex");
-
-    // Return all necessary parameters for authenticated request
-    return {
-      ...params,
-      apiSig: `${rand}${hash}`,
-    };
   }
 
   // Common request method
   async makeRequest(methodName, params = {}) {
     try {
-      const authParams = this.generateApiSignature(methodName, params);
       const url = `${this.baseURL}/${methodName}`;
-      const response = await axios.get(url, { params: authParams });
+      const response = await axios.get(url, { params });
 
       if (response.data.status === "OK") {
         return response.data.result;
@@ -75,9 +29,11 @@ class CodeforcesService {
     }
   }
 
-  // Get user info
-  async getUserInfo(handle) {
-    return this.makeRequest("user.info", { handles: handle });
+  // Get information about one or several users
+  async getUserInfo(handles) {
+    // Convert single handle to semicolon-separated format if needed
+    const handlesParam = Array.isArray(handles) ? handles.join(";") : handles;
+    return this.makeRequest("user.info", { handles: handlesParam });
   }
 
   // Get rating history for a user
@@ -86,21 +42,101 @@ class CodeforcesService {
   }
 
   // Get user submissions
-  async getUserSubmissions(handle, count = 100) {
-    return this.makeRequest("user.status", { handle, count });
+  async getUserSubmissions(handle, count = 100, from = 1) {
+    return this.makeRequest("user.status", { handle, count, from });
   }
 
-  // Get user contest participation
+  // Get user's blog entries
+  async getUserBlogEntries(handle) {
+    return this.makeRequest("user.blogEntries", { handle });
+  }
+
+  // Get authorized user's friends (requires auth)
+  // async getUserFriends(onlyOnline = false) {
+  //   return this.makeRequest("user.friends", { onlyOnline });
+  // }
+
+  // Get users who participated in rated contests
+  async getRatedUsers(activeOnly = true, includeRetired = false) {
+    return this.makeRequest("user.ratedList", { activeOnly, includeRetired });
+  }
+
+  // Get all available contests
   async getContestList(gym = false) {
     return this.makeRequest("contest.list", { gym });
   }
 
-  // Get problems with statistics
-  async getProblems(tags = "") {
-    return this.makeRequest("problemset.problems", tags ? { tags } : {});
+  // Get contest standings
+  async getContestStandings(
+    contestId,
+    from = 1,
+    count = 10,
+    showUnofficial = false,
+    room = undefined,
+    handles = undefined
+  ) {
+    const params = { contestId, from, count, showUnofficial };
+    if (room !== undefined) params.room = room;
+    if (handles !== undefined) {
+      // Convert array to semicolon-separated format if needed
+      params.handles = Array.isArray(handles) ? handles.join(";") : handles;
+    }
+    return this.makeRequest("contest.standings", params);
   }
 
-  // Get user's recent contest performance
+  // Get submissions for a contest
+  async getContestSubmissions(
+    contestId,
+    from = 1,
+    count = 10,
+    handle = undefined
+  ) {
+    const params = { contestId, from, count };
+    if (handle) params.handle = handle;
+    return this.makeRequest("contest.status", params);
+  }
+
+  // Get rating changes after a contest
+  async getContestRatingChanges(contestId) {
+    return this.makeRequest("contest.ratingChanges", { contestId });
+  }
+
+  // Get hacks in a contest
+  async getContestHacks(contestId) {
+    return this.makeRequest("contest.hacks", { contestId });
+  }
+
+  // Get all problems
+  async getProblems(tags = "") {
+    const params = {};
+    if (tags) {
+      // Convert array to semicolon-separated format if needed
+      params.tags = Array.isArray(tags) ? tags.join(";") : tags;
+    }
+    return this.makeRequest("problemset.problems", params);
+  }
+
+  // Get recent submissions
+  async getRecentSubmissions(count = 10) {
+    return this.makeRequest("problemset.recentStatus", { count });
+  }
+
+  // Get a blog entry
+  async getBlogEntry(blogEntryId) {
+    return this.makeRequest("blogEntry.view", { blogEntryId });
+  }
+
+  // Get comments on a blog entry
+  async getBlogEntryComments(blogEntryId) {
+    return this.makeRequest("blogEntry.comments", { blogEntryId });
+  }
+
+  // Get recent actions
+  async getRecentActions(maxCount = 30) {
+    return this.makeRequest("recentActions", { maxCount });
+  }
+
+  // Get user's recent contest performance (utility method)
   async getUserRecentContests(handle, count = 5) {
     const ratingChanges = await this.makeRequest("user.rating", { handle });
     return ratingChanges.slice(-count);
@@ -112,10 +148,13 @@ class CodeforcesService {
     const params = {};
 
     if (problemsetName) params.problemsetName = problemsetName;
-    if (tags) params.tags = tags;
+    if (tags) {
+      // Convert array to semicolon-separated format if needed
+      params.tags = Array.isArray(tags) ? tags.join(";") : tags;
+    }
 
-    const problems = await this.makeRequest("problemset.problems", params);
-    return this.analyzeProblemDistribution(problems.problems, filters);
+    const result = await this.makeRequest("problemset.problems", params);
+    return this.analyzeProblemDistribution(result.problems, filters);
   }
 
   // Helper method to analyze problem distribution
@@ -131,11 +170,29 @@ class CodeforcesService {
     // Filter by contest type if specified
     if (contestType && contestType !== "All Types") {
       filteredProblems = filteredProblems.filter((p) => {
-        // Logic to determine contest type from problem data
-        // This is approximate as the API doesn't directly provide contest type
+        // Contest type filtering logic
+        // Typical contest IDs follow patterns:
+        // - Educational rounds: 1200-1399
+        // - Div. 1: typically under 1000
+        // - Div. 2: typically 1000-1999
+        // - Div. 3: typically 1600-1999
+        // - Gym contests: typically above 100000
         const contestId = p.contestId;
-        // Implementation would depend on how to identify contest types
-        return true; // Placeholder
+
+        switch (contestType) {
+          case "Educational":
+            return contestId >= 1200 && contestId < 1400;
+          case "Div. 1":
+            return contestId < 1000 || (contestId >= 1700 && contestId < 1800);
+          case "Div. 2":
+            return contestId >= 1000 && contestId < 1600;
+          case "Div. 3":
+            return contestId >= 1600 && contestId < 1700;
+          case "Gym":
+            return contestId >= 100000;
+          default:
+            return true;
+        }
       });
     }
 
@@ -168,8 +225,24 @@ class CodeforcesService {
           break;
       }
 
-      // Filter problems by date if we can determine it
-      // Note: This would require additional data about when problems were added
+      // Filter problems by contest ID as a proxy for date
+      // Lower contest IDs are generally older
+      // This is an approximation since the API doesn't directly provide problem creation date
+      const contestIds = [
+        ...new Set(filteredProblems.map((p) => p.contestId)),
+      ].sort((a, b) => b - a);
+      const recentContestIds = new Set(
+        contestIds.slice(
+          0,
+          Math.ceil(
+            contestIds.length * (timeFilter / (4 * 365 * 24 * 60 * 60 * 1000))
+          )
+        )
+      );
+
+      filteredProblems = filteredProblems.filter((p) =>
+        recentContestIds.has(p.contestId)
+      );
     }
 
     // Analyze by rating
@@ -188,9 +261,20 @@ class CodeforcesService {
       }
     });
 
+    // Add analysis by tags
+    const tagDistribution = {};
+    filteredProblems.forEach((p) => {
+      if (p.tags && Array.isArray(p.tags)) {
+        p.tags.forEach((tag) => {
+          tagDistribution[tag] = (tagDistribution[tag] || 0) + 1;
+        });
+      }
+    });
+
     return {
       ratingDistribution,
       indexDistribution,
+      tagDistribution,
       totalProblems: filteredProblems.length,
     };
   }
