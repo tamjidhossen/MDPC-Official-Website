@@ -2,16 +2,47 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import codeforcesService from "../services/codeforces.service.js";
+import {
+  CodeforcesLeaderboard,
+  CodeforcesProblemDistribution,
+} from "../models/codeforces.model.js";
+
+// Cache duration constants (in milliseconds)
+const CACHE_DURATIONS = {
+  LEADERBOARD: 60 * 60 * 1000, // 1 hour
+  PROBLEM_DISTRIBUTION: 24 * 60 * 60 * 1000, // 24 hours
+};
 
 // Get leaderboard data (Organization ranking, username, rating, rank, contests)
 const getOrganizationLeaderboard = asyncHandler(async (req, res) => {
-  const organization = req.query.organization || "Jatiya Kabi Kazi Nazrul Islam University";
+  const organization =
+    req.query.organization || "Jatiya Kabi Kazi Nazrul Islam University";
   const limit = parseInt(req.query.limit) || 20;
+  const forceRefresh = req.query.refresh === "true";
 
   try {
-    // Fetch all rated users
+    // Check cache first if not forcing refresh
+    if (!forceRefresh) {
+      const cachedLeaderboard = await CodeforcesLeaderboard.findOne({
+        organization: organization,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (cachedLeaderboard) {
+        return res
+          .status(200)
+          .json(
+            new ApiResponse(
+              200,
+              cachedLeaderboard.users.slice(0, limit),
+              "Organization leaderboard fetched from cache"
+            )
+          );
+      }
+    }
+
+    // If no cache or force refresh, fetch from Codeforces API
     const allUsers = await codeforcesService.getRatedUsers(false, true);
-    // console.log(allUsers.length) # 808960 -> this shit needs to be cached
     // Filter users by organization (case-insensitive partial match)
     const orgUsers = allUsers
       .filter(
@@ -35,20 +66,36 @@ const getOrganizationLeaderboard = asyncHandler(async (req, res) => {
 
     const userData = orgUsers.map((user) => {
       return {
-      handle: user.handle,
-      rating: user.rating || 0,
-      maxRating: user.maxRating || 0,
-      rank: user.rank || "unrated",
+        handle: user.handle,
+        rating: user.rating || 0,
+        maxRating: user.maxRating || 0,
+        rank: user.rank || "unrated",
+        organization: user.organization || "",
       };
     });
+
+    // Save to cache
+    const expiresAt = new Date(Date.now() + CACHE_DURATIONS.LEADERBOARD);
+
+    // Use findOneAndUpdate with upsert to avoid race conditions
+    await CodeforcesLeaderboard.findOneAndUpdate(
+      { organization },
+      {
+        organization,
+        users: userData,
+        lastUpdated: new Date(),
+        expiresAt,
+      },
+      { upsert: true, new: true }
+    );
 
     return res
       .status(200)
       .json(
         new ApiResponse(
           200,
-          userData,
-          "Organization leaderboard fetched successfully"
+          userData.slice(0, limit),
+          "Organization leaderboard fetched and cached successfully"
         )
       );
   } catch (error) {
@@ -212,15 +259,69 @@ const getProblemDistribution = asyncHandler(async (req, res) => {
       contestType = "All Types",
       timing = "All Time",
       tags = "",
+      refresh = "false",
     } = req.query;
 
-    // Get problem distribution based on filters
+    const forceRefresh = refresh === "true";
+    const tagsArray = tags ? tags.split(",") : undefined;
+
+    // Create a filter key for caching
+    const filterKey = JSON.stringify({
+      index,
+      contestType,
+      timing,
+      tags: tagsArray,
+    });
+
+    // Check cache first if not forcing refresh
+    if (!forceRefresh) {
+      const cachedDistribution = await CodeforcesProblemDistribution.findOne({
+        "filters.key": filterKey,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (cachedDistribution) {
+        return res
+          .status(200)
+          .json(
+            new ApiResponse(
+              200,
+              cachedDistribution.data,
+              "Problem distribution data fetched from cache"
+            )
+          );
+      }
+    }
+
+    // If no cache or force refresh, fetch from Codeforces API
     const distribution = await codeforcesService.getProblemDistribution({
       index,
       contestType,
       timing,
-      tags: tags ? tags.split(",") : undefined,
+      tags: tagsArray,
     });
+
+    // Save to cache
+    const expiresAt = new Date(
+      Date.now() + CACHE_DURATIONS.PROBLEM_DISTRIBUTION
+    );
+
+    await CodeforcesProblemDistribution.findOneAndUpdate(
+      { "filters.key": filterKey },
+      {
+        filters: {
+          key: filterKey,
+          index,
+          contestType,
+          timing,
+          tags: tagsArray,
+        },
+        data: distribution,
+        lastUpdated: new Date(),
+        expiresAt,
+      },
+      { upsert: true, new: true }
+    );
 
     return res
       .status(200)
@@ -228,7 +329,7 @@ const getProblemDistribution = asyncHandler(async (req, res) => {
         new ApiResponse(
           200,
           distribution,
-          "Problem distribution data fetched successfully"
+          "Problem distribution data fetched and cached successfully"
         )
       );
   } catch (error) {
