@@ -7,14 +7,12 @@ import {
   updateUserProfile,
   refreshAccessToken,
   getAllUsers,
-  updateUserStatus,
 } from "../controllers/user.controller.js";
 import { verifyJWT, isAdmin } from "../middlewares/auth.middleware.js";
 import {
   registerValidator,
   loginValidator,
   updateProfileValidator,
-  updateStatusValidator,
 } from "../middlewares/validators/user.validator.js";
 import { upload } from "../utils/fileUpload.js";
 
@@ -38,12 +36,5 @@ router.put(
 
 // Admin routes
 router.get("/", verifyJWT, isAdmin, getAllUsers);
-router.patch(
-  "/:id/status",
-  verifyJWT,
-  isAdmin,
-  updateStatusValidator,
-  updateUserStatus
-);
 
 export default router;

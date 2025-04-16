@@ -26,6 +26,78 @@ export const createContest = asyncHandler(async (req, res) => {
     contestType,
   } = req.body;
 
+  // Validate required fields
+  if (
+    !title ||
+    !description ||
+    !date ||
+    !time ||
+    !duration ||
+    !platform ||
+    !contestLink
+  ) {
+    throw new ApiError(
+      400,
+      "Missing required fields: title, description, date, time, duration, platform, and contestLink are required"
+    );
+  }
+
+  // Check for empty strings after trimming
+  if (
+    title.trim() === "" ||
+    description.trim() === "" ||
+    time.trim() === "" ||
+    duration.trim() === "" ||
+    platform.trim() === "" ||
+    contestLink.trim() === ""
+  ) {
+    throw new ApiError(
+      400,
+      "Title, description, time, duration, platform, and contestLink cannot be empty"
+    );
+  }
+
+  // Validate date format
+  if (!Date.parse(date)) {
+    throw new ApiError(400, "Invalid date format");
+  }
+
+  // Validate duration is a positive number
+  const durationNum = Number(duration);
+  if (isNaN(durationNum) || durationNum <= 0) {
+    throw new ApiError(400, "Duration must be a positive number");
+  }
+
+  // Validate registration deadline if provided
+  if (registrationDeadline) {
+    if (!Date.parse(registrationDeadline)) {
+      throw new ApiError(400, "Invalid registration deadline format");
+    }
+
+    // Registration deadline should be before the contest date
+    if (new Date(registrationDeadline) >= new Date(date)) {
+      throw new ApiError(
+        400,
+        "Registration deadline must be before contest date"
+      );
+    }
+  }
+
+  // Validate contestType if provided
+  if (contestType && !Object.values(ContestTypes).includes(contestType)) {
+    throw new ApiError(
+      400,
+      `Contest type must be one of: ${Object.values(ContestTypes).join(", ")}`
+    );
+  }
+
+  // Validate contestLink is a valid URL
+  try {
+    new URL(contestLink);
+  } catch (error) {
+    throw new ApiError(400, "Contest link must be a valid URL");
+  }
+
   // Handle image upload if exists using standardized path
   let imageUrl = null;
   if (req.file) {
@@ -34,19 +106,19 @@ export const createContest = asyncHandler(async (req, res) => {
 
   // Create contest object
   const contest = await Contest.create({
-    title,
-    description,
+    title: title.trim(),
+    description: description.trim(),
     date: new Date(date),
-    time,
-    duration,
-    platform,
-    difficultyLevel,
+    time: time.trim(),
+    duration: duration.trim(),
+    platform: platform.trim(),
+    difficultyLevel: difficultyLevel ? difficultyLevel.trim() : undefined,
     registrationStatus:
       registrationStatus !== undefined ? registrationStatus : true,
     registrationDeadline: registrationDeadline
       ? new Date(registrationDeadline)
       : undefined,
-    contestLink,
+    contestLink: contestLink.trim(),
     status: status || "upcoming",
     contestType: contestType || ContestTypes.INDIVIDUAL,
     ...(imageUrl && { image: imageUrl }),
@@ -205,24 +277,95 @@ export const updateContest = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Contest not found");
   }
 
+  // Validate fields if provided
+  if (title && title.trim() === "") {
+    throw new ApiError(400, "Title cannot be empty");
+  }
+
+  if (description && description.trim() === "") {
+    throw new ApiError(400, "Description cannot be empty");
+  }
+
+  if (time && time.trim() === "") {
+    throw new ApiError(400, "Time cannot be empty");
+  }
+
+  if (duration && duration.trim() === "") {
+    throw new ApiError(400, "Duration cannot be empty");
+  }
+
+  if (platform && platform.trim() === "") {
+    throw new ApiError(400, "Platform cannot be empty");
+  }
+
+  if (contestLink && contestLink.trim() === "") {
+    throw new ApiError(400, "Contest link cannot be empty");
+  }
+
+  // Validate date format if provided
+  if (date && !Date.parse(date)) {
+    throw new ApiError(400, "Invalid date format");
+  }
+
+  // Validate duration is a positive number if provided
+  if (duration) {
+    const durationNum = Number(duration);
+    if (isNaN(durationNum) || durationNum <= 0) {
+      throw new ApiError(400, "Duration must be a positive number");
+    }
+  }
+
+  // Validate registration deadline if provided
+  if (registrationDeadline) {
+    if (!Date.parse(registrationDeadline)) {
+      throw new ApiError(400, "Invalid registration deadline format");
+    }
+
+    // Registration deadline should be before the contest date
+    const contestDate = date ? new Date(date) : contest.date;
+    if (new Date(registrationDeadline) >= contestDate) {
+      throw new ApiError(
+        400,
+        "Registration deadline must be before contest date"
+      );
+    }
+  }
+
+  // Validate contestType if provided
+  if (contestType && !Object.values(ContestTypes).includes(contestType)) {
+    throw new ApiError(
+      400,
+      `Contest type must be one of: ${Object.values(ContestTypes).join(", ")}`
+    );
+  }
+
+  // Validate contestLink is a valid URL if provided
+  if (contestLink) {
+    try {
+      new URL(contestLink);
+    } catch (error) {
+      throw new ApiError(400, "Contest link must be a valid URL");
+    }
+  }
+
   // Handle image update if exists using standardized path
   if (req.file) {
     contest.image = getFilePath(req, req.file);
   }
 
   // Update contest fields
-  if (title) contest.title = title;
-  if (description) contest.description = description;
+  if (title) contest.title = title.trim();
+  if (description) contest.description = description.trim();
   if (date) contest.date = new Date(date);
-  if (time) contest.time = time;
-  if (duration) contest.duration = duration;
-  if (platform) contest.platform = platform;
-  if (difficultyLevel) contest.difficultyLevel = difficultyLevel;
+  if (time) contest.time = time.trim();
+  if (duration) contest.duration = duration.trim();
+  if (platform) contest.platform = platform.trim();
+  if (difficultyLevel) contest.difficultyLevel = difficultyLevel.trim();
   if (registrationStatus !== undefined)
     contest.registrationStatus = registrationStatus;
   if (registrationDeadline)
     contest.registrationDeadline = new Date(registrationDeadline);
-  if (contestLink) contest.contestLink = contestLink;
+  if (contestLink) contest.contestLink = contestLink.trim();
   if (status) contest.status = status;
   if (contestType) contest.contestType = contestType;
 

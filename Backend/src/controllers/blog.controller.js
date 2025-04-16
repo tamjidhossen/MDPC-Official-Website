@@ -2,38 +2,65 @@ import { Blog } from "../models/blog.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { ContentStatus } from "../constants.js";
 import mongoose from "mongoose";
 
 // @desc    Create a new blog post
 // @route   POST /api/v1/blogs
 // @access  Private
 export const createBlog = asyncHandler(async (req, res) => {
-  const { title, content, category, tags, summary } = req.body;
+  const { title, content, category, tags } = req.body;
   const author = req.user._id;
 
-  // Handle image upload if exists
-  let imageUrl = null;
-  if (req.file) {
-    imageUrl = `/uploads/${req.file.filename}`;
+  // Validate required fields
+  if (!title || !content || !category) {
+    throw new ApiError(
+      400,
+      "Missing required fields: title, content, category are required"
+    );
+  }
+
+  // Check for empty strings after trimming
+  if (title.trim() === "" || content.trim() === "" || category.trim() === "") {
+    throw new ApiError(400, "Title, content, and category cannot be empty");
+  }
+
+  // Validate tags if provided
+  let parsedTags = [];
+  if (tags) {
+    try {
+      parsedTags = typeof tags === "string" ? JSON.parse(tags) : tags;
+
+      // Validate that tags are not empty strings
+      if (Array.isArray(parsedTags)) {
+        parsedTags = parsedTags.filter(
+          (tag) => tag && typeof tag === "string" && tag.trim() !== ""
+        );
+        if (parsedTags.length === 0 && tags) {
+          throw new ApiError(400, "Tags cannot be empty");
+        }
+      } else {
+        throw new ApiError(400, "Tags must be an array");
+      }
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(400, "Invalid tags format");
+    }
   }
 
   // Create blog object
   const blog = await Blog.create({
-    title,
-    content,
+    title: title.trim(),
+    content: content.trim(),
     author,
-    category,
-    tags: tags ? JSON.parse(tags) : [],
+    category: category.trim(),
+    tags: parsedTags,
     status: "pending",
-    summary,
-    ...(imageUrl && { image: imageUrl }),
   });
 
   // Populate author details
   const createdBlog = await Blog.findById(blog._id).populate({
     path: "author",
-    select: "name email studentId",
+    select: "name email",
   });
 
   res
@@ -95,7 +122,7 @@ export const getAllBlogs = asyncHandler(async (req, res) => {
   const blogs = await Blog.find(filter)
     .populate({
       path: "author",
-      select: "name email studentId",
+      select: "name email",
     })
     .skip(skip)
     .limit(limit)
@@ -131,7 +158,7 @@ export const getBlog = asyncHandler(async (req, res) => {
   // Find blog by ID
   const blog = await Blog.findById(id).populate({
     path: "author",
-    select: "name email studentId",
+    select: "name email",
   });
 
   if (!blog) {
@@ -157,7 +184,7 @@ export const getBlog = asyncHandler(async (req, res) => {
 // @access  Private (Owner or Admin)
 export const updateBlog = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { title, content, category, tags, summary } = req.body;
+  const { title, content, category, tags } = req.body;
 
   // Find blog by ID
   const blog = await Blog.findById(id);
@@ -171,17 +198,44 @@ export const updateBlog = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You do not have permission to update this blog");
   }
 
-  // Handle image update if exists
-  if (req.file) {
-    blog.image = `/uploads/${req.file.filename}`;
+  // Validate fields if provided
+  if (title && title.trim() === "") {
+    throw new ApiError(400, "Title cannot be empty");
+  }
+
+  if (content && content.trim() === "") {
+    throw new ApiError(400, "Content cannot be empty");
+  }
+
+  if (category && category.trim() === "") {
+    throw new ApiError(400, "Category cannot be empty");
+  }
+
+  // Validate tags if provided
+  let parsedTags = blog.tags;
+  if (tags) {
+    try {
+      parsedTags = typeof tags === "string" ? JSON.parse(tags) : tags;
+
+      // Validate that tags are not empty strings
+      if (Array.isArray(parsedTags)) {
+        parsedTags = parsedTags.filter(
+          (tag) => tag && typeof tag === "string" && tag.trim() !== ""
+        );
+      } else {
+        throw new ApiError(400, "Tags must be an array");
+      }
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(400, "Invalid tags format");
+    }
   }
 
   // Update blog fields
-  blog.title = title || blog.title;
-  blog.content = content || blog.content;
-  blog.category = category || blog.category;
-  blog.tags = tags ? JSON.parse(tags) : blog.tags;
-  blog.summary = summary || blog.summary;
+  blog.title = title ? title.trim() : blog.title;
+  blog.content = content ? content.trim() : blog.content;
+  blog.category = category ? category.trim() : blog.category;
+  blog.tags = parsedTags;
 
   // If user updates their own post, reset status to pending
   if (blog.author.equals(req.user._id) && req.user.role !== "admin") {
@@ -194,7 +248,7 @@ export const updateBlog = asyncHandler(async (req, res) => {
   // Populate author details for response
   const updatedBlog = await Blog.findById(blog._id).populate({
     path: "author",
-    select: "name email studentId",
+    select: "name email",
   });
 
   res
@@ -256,7 +310,7 @@ export const updateBlogStatus = asyncHandler(async (req, res) => {
   // Populate author details for response
   const updatedBlog = await Blog.findById(blog._id).populate({
     path: "author",
-    select: "name email studentId",
+    select: "name email",
   });
 
   res

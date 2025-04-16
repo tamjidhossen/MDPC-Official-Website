@@ -118,5 +118,6 @@ dist
 .pnp.*
 
 
-# copilot references
+# references
 copilot-reference.md
+codeforces-api-reference.md

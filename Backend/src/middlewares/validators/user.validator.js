@@ -1,4 +1,4 @@
-import { body, param, validationResult } from "express-validator";
+import { body, validationResult } from "express-validator";
 
 // Middleware to validate results
 export const validate = (req, res, next) => {
@@ -95,19 +95,6 @@ export const changePasswordValidator = [
     .withMessage(
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"
     ),
-
-  validate,
-];
-
-// Update user status validation rules
-export const updateStatusValidator = [
-  param("id").isMongoId().withMessage("Invalid user ID format"),
-
-  body("status")
-    .notEmpty()
-    .withMessage("Status is required")
-    .isIn(["pending", "active", "inactive"])
-    .withMessage("Status must be pending, active, or inactive"),
 
   validate,
 ];

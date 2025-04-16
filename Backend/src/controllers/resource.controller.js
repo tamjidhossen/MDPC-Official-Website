@@ -5,6 +5,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ResourceCategories, ResourceLevels } from "../constants.js";
 import mongoose from "mongoose";
 
+// Helper function to capitalize first letter
+const capitalizeFirstLetter = (string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
 // @desc    Create a new resource
 // @route   POST /api/v1/resources
 // @access  Admin
@@ -28,11 +33,14 @@ export const createResource = asyncHandler(async (req, res) => {
     }
   }
 
+  // Convert level to proper case format for the model
+  const formattedLevel = level ? capitalizeFirstLetter(level) : undefined;
+
   // Create resource object
   const resource = await Resource.create({
     title,
     category,
-    level,
+    level: formattedLevel,
     tags: tags ? (typeof tags === "string" ? JSON.parse(tags) : tags) : [],
     content,
     author,
@@ -74,9 +82,9 @@ export const getAllResources = asyncHandler(async (req, res) => {
     filter.category = req.query.category;
   }
 
-  // Filter by level
+  // Filter by level - handle case conversion
   if (req.query.level) {
-    filter.level = req.query.level;
+    filter.level = capitalizeFirstLetter(req.query.level);
   }
 
   // Filter by tag
@@ -106,9 +114,11 @@ export const getAllResources = asyncHandler(async (req, res) => {
   // Get total count
   const totalResources = await Resource.countDocuments(filter);
 
-  // Get categories and levels for filtering UI
+  // Get categories and levels for filtering UI - capitalize resource levels for UI
   const categories = Object.values(ResourceCategories);
-  const levels = Object.values(ResourceLevels);
+  const levels = Object.values(ResourceLevels).map((level) =>
+    capitalizeFirstLetter(level)
+  );
 
   // Return resources with pagination info and metadata
   res.status(200).json(
@@ -185,7 +195,7 @@ export const updateResource = asyncHandler(async (req, res) => {
   // Update resource fields
   if (title) resource.title = title;
   if (category) resource.category = category;
-  if (level) resource.level = level;
+  if (level) resource.level = capitalizeFirstLetter(level);
   if (tags) resource.tags = typeof tags === "string" ? JSON.parse(tags) : tags;
   if (content) resource.content = content;
   if (formattedExternalLinks) resource.externalLinks = formattedExternalLinks;

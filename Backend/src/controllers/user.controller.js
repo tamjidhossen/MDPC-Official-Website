@@ -11,6 +11,22 @@ import jwt from "jsonwebtoken";
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, programmingHandles } = req.body;
 
+  // Check for missing or empty fields
+  if (!name || !email || !password) {
+    throw new ApiError(400, "All required fields must be provided");
+  }
+
+  // Check for empty strings after trimming
+  if (name.trim() === "" || email.trim() === "" || password.trim() === "") {
+    throw new ApiError(400, "Empty values are not allowed");
+  }
+
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, "Please provide a valid email address");
+  }
+
   // Check if user already exists with email
   const existingUser = await User.findOne({ email });
 
@@ -18,10 +34,26 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exists with this email");
   }
 
+  // Validate programming handles if provided
+  if (programmingHandles) {
+    Object.keys(programmingHandles).forEach((platform) => {
+      if (
+        programmingHandles[platform] &&
+        typeof programmingHandles[platform] === "string" &&
+        programmingHandles[platform].trim() === ""
+      ) {
+        throw new ApiError(
+          400,
+          `Empty ${platform} handle is not allowed. Either provide a valid handle or remove it.`
+        );
+      }
+    });
+  }
+
   // Create user object
   const user = await User.create({
-    name,
-    email,
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
     password,
     programmingHandles: programmingHandles || {},
   });
@@ -47,6 +79,22 @@ export const registerUser = asyncHandler(async (req, res) => {
 // @access  Public
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
+  // Check for missing credentials
+  if (!email || !password) {
+    throw new ApiError(400, "Email and password are required");
+  }
+
+  // Check for empty strings after trimming
+  if (email.trim() === "" || password.trim() === "") {
+    throw new ApiError(400, "Email and password cannot be empty");
+  }
+
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, "Please provide a valid email address");
+  }
 
   // Find user by email
   const user = await User.findOne({ email }).select("+password");
@@ -137,10 +185,31 @@ export const getUserProfile = asyncHandler(async (req, res) => {
 export const updateUserProfile = asyncHandler(async (req, res) => {
   const { name, programmingHandles } = req.body;
 
+  // Validate inputs if provided
+  if (name && name.trim() === "") {
+    throw new ApiError(400, "Name cannot be empty");
+  }
+
   // Handle avatar upload if exists
   let avatarUrl = null;
   if (req.file) {
     avatarUrl = `/uploads/images/users/${req.file.filename}`;
+  }
+
+  // Validate programming handles if provided
+  if (programmingHandles) {
+    Object.keys(programmingHandles).forEach((platform) => {
+      if (
+        programmingHandles[platform] &&
+        typeof programmingHandles[platform] === "string" &&
+        programmingHandles[platform].trim() === ""
+      ) {
+        throw new ApiError(
+          400,
+          `Empty ${platform} handle is not allowed. Either provide a valid handle or remove it.`
+        );
+      }
+    });
   }
 
   // Update allowed fields
@@ -148,7 +217,7 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $set: {
-        name: name || req.user.name,
+        name: name ? name.trim() : req.user.name,
         ...(programmingHandles && { programmingHandles }),
         ...(avatarUrl && { avatar: avatarUrl }),
       },
@@ -280,33 +349,4 @@ export const getAllUsers = asyncHandler(async (req, res) => {
       "Users fetched successfully"
     )
   );
-});
-
-// @desc    Update user status (admin only)
-// @route   PATCH /api/v1/users/:id/status
-// @access  Admin
-export const updateUserStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  // Find user by ID
-  const user = await User.findById(id).select("-password -refreshToken");
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  // Update user status
-  user.status = status;
-  await user.save();
-
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { user },
-        `User status updated to ${status} successfully`
-      )
-    );
 });

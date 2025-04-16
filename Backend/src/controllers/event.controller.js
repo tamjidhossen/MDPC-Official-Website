@@ -2,6 +2,7 @@ import { Event } from "../models/event.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { EventTypes } from "../constants.js";
 import mongoose from "mongoose";
 
 // @desc    Create a new event
@@ -21,27 +22,77 @@ export const createEvent = asyncHandler(async (req, res) => {
     status,
   } = req.body;
 
-  // Handle image upload if exists
-  let imageUrl = null;
-  if (req.file) {
-    imageUrl = `/uploads/${req.file.filename}`;
+  // Validate required fields
+  if (!title || !description || !date || !time || !venue) {
+    throw new ApiError(
+      400,
+      "All required fields must be provided: title, description, date, time, venue"
+    );
+  }
+
+  // Check for empty strings after trimming
+  if (
+    title.trim() === "" ||
+    description.trim() === "" ||
+    venue.trim() === "" ||
+    time.trim() === ""
+  ) {
+    throw new ApiError(
+      400,
+      "Title, description, venue, and time cannot be empty"
+    );
+  }
+
+  // Validate event type if provided
+  if (type && !Object.values(EventTypes).includes(type)) {
+    throw new ApiError(
+      400,
+      `Event type must be one of: ${Object.values(EventTypes).join(", ")}`
+    );
+  }
+
+  // Validate date format
+  if (!Date.parse(date)) {
+    throw new ApiError(400, "Invalid date format");
+  }
+
+  // Validate registration deadline if provided
+  if (registrationDeadline) {
+    if (!Date.parse(registrationDeadline)) {
+      throw new ApiError(400, "Invalid registration deadline format");
+    }
+
+    // Registration deadline should be before the event date
+    if (new Date(registrationDeadline) >= new Date(date)) {
+      throw new ApiError(
+        400,
+        "Registration deadline must be before event date"
+      );
+    }
+  }
+
+  // Validate maxParticipants if provided
+  if (maxParticipants !== undefined) {
+    const maxParticipantsNum = Number(maxParticipants);
+    if (isNaN(maxParticipantsNum) || maxParticipantsNum <= 0) {
+      throw new ApiError(400, "Maximum participants must be a positive number");
+    }
   }
 
   // Create event object
   const event = await Event.create({
-    title,
-    description,
+    title: title.trim(),
+    description: description.trim(),
     date: new Date(date),
-    time,
-    venue,
-    type,
+    time: time.trim(),
+    venue: venue.trim(),
+    type: type || EventTypes.OTHER,
     registrationOpen: registrationOpen !== undefined ? registrationOpen : true,
     registrationDeadline: registrationDeadline
       ? new Date(registrationDeadline)
       : undefined,
-    maxParticipants,
+    maxParticipants: maxParticipants ? Number(maxParticipants) : undefined,
     status: status || "upcoming",
-    ...(imageUrl && { image: imageUrl }),
   });
 
   res
@@ -105,7 +156,7 @@ export const getAllEvents = asyncHandler(async (req, res) => {
   // Get total count
   const totalEvents = await Event.countDocuments(filter);
 
-  // Return events with pagination info
+  // Return events with pagination info and event types for UI filtering
   res.status(200).json(
     new ApiResponse(
       200,
@@ -116,6 +167,9 @@ export const getAllEvents = asyncHandler(async (req, res) => {
           limit,
           totalEvents,
           totalPages: Math.ceil(totalEvents / limit),
+        },
+        metadata: {
+          eventTypes: Object.values(EventTypes),
         },
       },
       "Events fetched successfully"
@@ -132,7 +186,7 @@ export const getEvent = asyncHandler(async (req, res) => {
   // Find event by ID
   const event = await Event.findById(id).populate({
     path: "participants",
-    select: "name email studentId department",
+    select: "name email",
   });
 
   if (!event) {
@@ -184,22 +238,79 @@ export const updateEvent = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Event not found");
   }
 
-  // Handle image update if exists
-  if (req.file) {
-    event.image = `/uploads/${req.file.filename}`;
+  // Validate fields if provided
+  if (title && title.trim() === "") {
+    throw new ApiError(400, "Title cannot be empty");
+  }
+
+  if (description && description.trim() === "") {
+    throw new ApiError(400, "Description cannot be empty");
+  }
+
+  if (venue && venue.trim() === "") {
+    throw new ApiError(400, "Venue cannot be empty");
+  }
+
+  if (time && time.trim() === "") {
+    throw new ApiError(400, "Time cannot be empty");
+  }
+
+  // Validate event type if provided
+  if (type && !Object.values(EventTypes).includes(type)) {
+    throw new ApiError(
+      400,
+      `Event type must be one of: ${Object.values(EventTypes).join(", ")}`
+    );
+  }
+
+  // Validate date format if provided
+  if (date && !Date.parse(date)) {
+    throw new ApiError(400, "Invalid date format");
+  }
+
+  // Validate registration deadline if provided
+  if (registrationDeadline) {
+    if (!Date.parse(registrationDeadline)) {
+      throw new ApiError(400, "Invalid registration deadline format");
+    }
+
+    // Registration deadline should be before the event date
+    const eventDate = date ? new Date(date) : event.date;
+    if (new Date(registrationDeadline) >= eventDate) {
+      throw new ApiError(
+        400,
+        "Registration deadline must be before event date"
+      );
+    }
+  }
+
+  // Validate maxParticipants if provided
+  if (maxParticipants !== undefined) {
+    const maxParticipantsNum = Number(maxParticipants);
+    if (isNaN(maxParticipantsNum) || maxParticipantsNum <= 0) {
+      throw new ApiError(400, "Maximum participants must be a positive number");
+    }
+
+    // Ensure maxParticipants is not less than current participant count
+    if (maxParticipantsNum < event.participants.length) {
+      throw new ApiError(
+        400,
+        "Maximum participants cannot be less than current number of participants"
+      );
+    }
   }
 
   // Update event fields
-  if (title) event.title = title;
-  if (description) event.description = description;
+  if (title) event.title = title.trim();
+  if (description) event.description = description.trim();
   if (date) event.date = new Date(date);
-  if (time) event.time = time;
-  if (venue) event.venue = venue;
+  if (time) event.time = time.trim();
+  if (venue) event.venue = venue.trim();
   if (type) event.type = type;
   if (registrationOpen !== undefined) event.registrationOpen = registrationOpen;
   if (registrationDeadline)
     event.registrationDeadline = new Date(registrationDeadline);
-  if (maxParticipants) event.maxParticipants = maxParticipants;
+  if (maxParticipants) event.maxParticipants = Number(maxParticipants);
   if (status) event.status = status;
 
   // Save updated event
