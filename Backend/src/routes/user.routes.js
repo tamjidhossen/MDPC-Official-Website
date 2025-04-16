@@ -7,6 +7,7 @@ import {
   updateUserProfile,
   refreshAccessToken,
   getAllUsers,
+  updateUserRole,
 } from "../controllers/user.controller.js";
 import { verifyJWT, isAdmin } from "../middlewares/auth.middleware.js";
 import {
@@ -36,5 +37,6 @@ router.put(
 
 // Admin routes
 router.get("/", verifyJWT, isAdmin, getAllUsers);
+router.patch("/:userId/role", verifyJWT, isAdmin, updateUserRole);
 
 export default router;

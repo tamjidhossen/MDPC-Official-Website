@@ -350,3 +350,45 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     )
   );
 });
+
+// @desc    Update user role (promote/demote admin)
+// @route   PATCH /api/v1/users/:userId/role
+// @access  Admin
+export const updateUserRole = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { role } = req.body;
+
+  // Validate role
+  if (!role || !["user", "admin"].includes(role)) {
+    throw new ApiError(
+      400,
+      "Invalid role specified. Role must be 'user' or 'admin'"
+    );
+  }
+
+  // Make sure user is not trying to change their own role
+  if (userId === req.user._id.toString()) {
+    throw new ApiError(403, "You cannot change your own role");
+  }
+
+  // Find user and update role
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { role },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { user: updatedUser },
+        `User role updated successfully to ${role}`
+      )
+    );
+});
