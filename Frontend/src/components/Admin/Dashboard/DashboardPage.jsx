@@ -9,6 +9,7 @@ import MemberDatabaseSection from "./sections/MemberDatabaseSection";
 import EventManagementSection from "./sections/EventManagementSection";
 import ContestManagementSection from "./sections/ContestManagementSection";
 import RegistrationSettingsSection from "./sections/RegistrationSettingsSection";
+import AdminManagementSection from "./sections/AdminManagementSection";
 import { Toaster } from "@/components/ui/toaster";
 
 const DashboardPage = () => {
@@ -29,6 +30,8 @@ const DashboardPage = () => {
         return <ContestManagementSection />;
       case "registration":
         return <RegistrationSettingsSection />;
+      case "admins":
+        return <AdminManagementSection />;
       default:
         return <OverviewSection />;
     }

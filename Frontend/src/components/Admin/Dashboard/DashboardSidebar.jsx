@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   ChevronLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -67,6 +68,11 @@ const DashboardSidebar = ({
       id: "registration",
       name: "Registration Settings",
       icon: <Settings className="h-5 w-5" />,
+    },
+    {
+      id: "admins",
+      name: "Admin Management",
+      icon: <ShieldCheck className="h-5 w-5" />,
     },
   ];
 

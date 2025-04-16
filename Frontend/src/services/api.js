@@ -73,6 +73,28 @@ export const userApi = {
     });
     return response.data;
   },
+
+  // Get all users (admin only)
+  getAllUsers: async (params = {}) => {
+    const response = await apiClient.get("/users", { params });
+    return response.data;
+  },
+
+  // Update user role to admin (admin only)
+  promoteToAdmin: async (userId) => {
+    const response = await apiClient.patch(`/users/${userId}/role`, {
+      role: "admin",
+    });
+    return response.data;
+  },
+
+  // Update user role to regular user (admin only)
+  removeAdmin: async (userId) => {
+    const response = await apiClient.patch(`/users/${userId}/role`, {
+      role: "user",
+    });
+    return response.data;
+  },
 };
 
 // Blog API endpoints
