@@ -40,7 +40,7 @@ const codeforcesLeaderboardSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true, // Index for expiration queries
+      // Removed index: true to avoid duplicate index
     },
   },
   { timestamps: true }
@@ -72,7 +72,7 @@ const problemDistributionSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      // Removed index: true to avoid duplicate index
     },
   },
   { timestamps: true }
