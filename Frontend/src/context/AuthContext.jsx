@@ -35,6 +35,45 @@ export function AuthProvider({ children }) {
     checkAuthStatus();
   }, []);
 
+  // Register function
+  const register = async (userData) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await userApi.register(userData);
+
+      if (response.success) {
+        // After registration, we'll log in the user automatically
+        const loginResponse = await userApi.login({
+          email: userData.email,
+          password: userData.password,
+        });
+
+        if (loginResponse.success) {
+          setUser(loginResponse.data.user);
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created successfully",
+          });
+          return true;
+        }
+      }
+      return false;
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Registration failed";
+      setError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: errorMessage,
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Login function
   const login = async (email, password) => {
     setLoading(true);
@@ -94,13 +133,20 @@ export function AuthProvider({ children }) {
     return user?.role === "admin";
   };
 
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!user;
+  };
+
   const value = {
     user,
     loading,
     error,
+    register,
     login,
     logout,
     isAdmin,
+    isAuthenticated,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -47,7 +47,7 @@ const AdminManagementSection = () => {
   const [addAdminDialogOpen, setAddAdminDialogOpen] = useState(false);
   const [removeAdminDialogOpen, setRemoveAdminDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
 
   // State for API data
   const [users, setUsers] = useState([]);
@@ -56,6 +56,7 @@ const AdminManagementSection = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [permissionLevel, setPermissionLevel] = useState("admin");
+  const [searching, setSearching] = useState(false);
 
   // Fetch users on component mount and when page changes
   useEffect(() => {
@@ -69,7 +70,6 @@ const AdminManagementSection = () => {
       const response = await userApi.getAllUsers({
         page,
         limit: 10,
-        search: searchTerm,
       });
 
       if (response.success) {
@@ -100,21 +100,40 @@ const AdminManagementSection = () => {
     setSearchTerm(e.target.value);
   };
 
-  // Debounced search effect
+  // Debounced search effect for finding potential admins
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1); // Reset to first page when searching
-      fetchUsers();
+    if (!addAdminDialogOpen || !searchTerm) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const response = await userApi.getAllUsers({
+          search: searchTerm,
+          limit: 5,
+        });
+
+        if (response.success) {
+          // Filter out users who are already admins
+          const regularUsers = response.data.users.filter(
+            (user) => user.role !== "admin"
+          );
+          setSearchResults(regularUsers);
+        }
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setSearching(false);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, addAdminDialogOpen]);
 
   // Filter users by role
   const adminUsers = users.filter((user) => user.role === "admin");
-  const regularUsers = users.filter(
-    (user) => user.role === "user" && user.isMember
-  );
 
   const handleAddAdmin = async (e) => {
     e.preventDefault();
@@ -129,6 +148,9 @@ const AdminManagementSection = () => {
         });
         // Refresh the user list
         fetchUsers();
+        // Close dialog and reset
+        setAddAdminDialogOpen(false);
+        setSelectedUser(null);
       } else {
         toast({
           title: "Error",
@@ -142,9 +164,6 @@ const AdminManagementSection = () => {
         description: err.message || "Failed to promote user to admin",
         variant: "destructive",
       });
-    } finally {
-      setAddAdminDialogOpen(false);
-      setSelectedUser(null);
     }
   };
 
@@ -179,66 +198,20 @@ const AdminManagementSection = () => {
     }
   };
 
-  const openAddAdminDialog = (user) => {
-    setSelectedUser(user);
+  const openAddAdminDialog = () => {
+    setSelectedUser(null);
+    setSearchTerm("");
+    setSearchResults([]);
     setAddAdminDialogOpen(true);
+  };
+
+  const selectUserForPromotion = (user) => {
+    setSelectedUser(user);
   };
 
   const openRemoveAdminDialog = (admin) => {
     setSelectedUser(admin);
     setRemoveAdminDialogOpen(true);
-  };
-
-  const addUserByEmail = async (e) => {
-    e.preventDefault();
-    if (!newAdminEmail) return;
-
-    try {
-      // First, search for the user by email
-      const response = await userApi.getAllUsers({
-        search: newAdminEmail,
-        limit: 1,
-      });
-
-      if (response.success && response.data.users.length > 0) {
-        const user = response.data.users[0];
-
-        // If user is already an admin, show notification
-        if (user.role === "admin") {
-          toast({
-            title: "Notice",
-            description: `${user.name} is already an administrator.`,
-          });
-          setNewAdminEmail("");
-          return;
-        }
-
-        // Otherwise, promote the user to admin
-        const promoteResponse = await userApi.promoteToAdmin(user._id);
-        if (promoteResponse.success) {
-          toast({
-            title: "Admin Added",
-            description: `${user.name} (${user.email}) has been promoted to admin successfully.`,
-          });
-          // Refresh the user list
-          fetchUsers();
-        }
-      } else {
-        toast({
-          title: "User Not Found",
-          description: `No user found with email ${newAdminEmail}`,
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to add admin by email",
-        variant: "destructive",
-      });
-    } finally {
-      setNewAdminEmail("");
-    }
   };
 
   return (
@@ -252,7 +225,7 @@ const AdminManagementSection = () => {
 
       {/* Search and actions row */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <Button onClick={() => setAddAdminDialogOpen(true)}>
+        <Button onClick={openAddAdminDialog}>
           <UserPlus className="mr-2 h-4 w-4" /> Add New Admin
         </Button>
       </div>
@@ -370,11 +343,8 @@ const AdminManagementSection = () => {
                 </div>
               </div>
               <DialogFooter className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setAddAdminDialogOpen(false)}
-                >
-                  Cancel
+                <Button variant="ghost" onClick={() => setSelectedUser(null)}>
+                  Back
                 </Button>
                 <Button onClick={handleAddAdmin} disabled={loading}>
                   {loading ? (
@@ -391,42 +361,58 @@ const AdminManagementSection = () => {
               <DialogHeader>
                 <DialogTitle>Add New Administrator</DialogTitle>
                 <DialogDescription>
-                  Select a member to grant admin privileges.
+                  Search for an existing user to promote to administrator.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <Input
-                  placeholder="Search for user..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  className="mb-4"
-                />
-                <div className="max-h-[300px] overflow-y-auto space-y-2">
-                  {loading ? (
-                    <div className="py-4 flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : regularUsers.length > 0 ? (
-                    regularUsers.map((user) => (
-                      <div
-                        key={user._id}
-                        className="flex items-center justify-between p-3 rounded-md border hover:bg-muted cursor-pointer"
-                        onClick={() => openAddAdminDialog(user)}
-                      >
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                        <Button size="sm">Select</Button>
+                <div className="space-y-4">
+                  <div className="flex space-x-2 items-center">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={handleSearch}
+                      className="flex-1"
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    {searching ? (
+                      <div className="py-4 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-center py-4 text-muted-foreground">
-                      No users match your search.
-                    </p>
-                  )}
+                    ) : searchResults.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {searchResults.length} user
+                          {searchResults.length !== 1 ? "s" : ""} found
+                        </p>
+                        {searchResults.map((user) => (
+                          <div
+                            key={user._id}
+                            className="flex items-center justify-between p-3 rounded-md border hover:bg-muted cursor-pointer"
+                            onClick={() => selectUserForPromotion(user)}
+                          >
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {user.email}
+                              </p>
+                            </div>
+                            <Button size="sm">Select</Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : searchTerm ? (
+                      <p className="text-center py-4 text-muted-foreground">
+                        No users match your search.
+                      </p>
+                    ) : (
+                      <p className="text-center py-4 text-muted-foreground">
+                        Enter a name or email to search for users.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
               <DialogFooter>

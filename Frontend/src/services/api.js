@@ -48,6 +48,12 @@ export const codeforcesApi = {
 
 // User API endpoints
 export const userApi = {
+  // Register new user
+  register: async (userData) => {
+    const response = await apiClient.post("/users/register", userData);
+    return response.data;
+  },
+
   // Login user
   login: async (credentials) => {
     const response = await apiClient.post("/users/login", credentials);

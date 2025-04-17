@@ -14,7 +14,6 @@ import CPRoadmapResource from "./components/Resources/CPRoadmapResource";
 import JoinPage from "./components/Join/JoinPage";
 
 // Admin imports
-import AdminLoginPage from "./components/Admin/LoginPage";
 import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
 import ProtectedRoute from "./components/Admin/ProtectedRoute";
 
@@ -25,6 +24,7 @@ import {
   RouterProvider,
   createBrowserRouter,
   createRoutesFromElements,
+  Navigate,
 } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
@@ -52,7 +52,8 @@ const AppWithRoutes = () => {
           <Route path="join" element={<JoinPage />} />
         </Route>
         <Route path="/admin">
-          <Route path="login" element={<AdminLoginPage />} />
+          {/* Redirect from admin login to main login */}
+          <Route path="login" element={<Navigate to="/login" replace />} />
           <Route
             path="dashboard"
             element={

@@ -13,10 +13,16 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Check if user is authenticated and has admin role
-  if (!user || !isAdmin()) {
-    // Redirect to login page if not authenticated or not admin
-    return <Navigate to="/admin/login" replace />;
+  // Check if user is authenticated
+  if (!user) {
+    // Redirect to the user login page (not admin login) if not authenticated
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check if user has admin role
+  if (!isAdmin()) {
+    // Redirect to user dashboard if authenticated but not admin
+    return <Navigate to="/user/dashboard" replace />;
   }
 
   // If authenticated and admin, render the children (protected component)

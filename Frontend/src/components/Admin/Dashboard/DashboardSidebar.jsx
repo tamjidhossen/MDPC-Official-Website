@@ -11,10 +11,10 @@ import {
   Calendar,
   Trophy,
   Settings,
-  LogOut,
   Menu,
   ChevronLeft,
   ShieldCheck,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -25,15 +25,15 @@ const DashboardSidebar = ({
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Display actual user name if available
   const displayName = user?.name || userName;
 
-  // Handle logout - use auth context with navigate function
-  const handleLogout = () => {
-    logout(navigate);
+  // Handle return to user dashboard
+  const handleReturnToUserDashboard = () => {
+    navigate("/user/dashboard");
   };
 
   const menuItems = [
@@ -127,9 +127,9 @@ const DashboardSidebar = ({
             <Button
               variant="outline"
               className="w-full justify-start"
-              onClick={handleLogout}
+              onClick={handleReturnToUserDashboard}
             >
-              <LogOut className="h-4 w-4 mr-2" /> Log out
+              <ArrowLeft className="h-4 w-4 mr-2" /> Return to User Dashboard
             </Button>
           </div>
         </div>
@@ -202,9 +202,14 @@ const DashboardSidebar = ({
           </div>
 
           {!isCollapsed && (
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-              <span className="sr-only">Log out</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleReturnToUserDashboard}
+              className="ml-auto"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Return to User Dashboard</span>
             </Button>
           )}
         </div>
