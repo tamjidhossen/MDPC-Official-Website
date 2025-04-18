@@ -16,6 +16,7 @@ import JoinPage from "./components/Join/JoinPage";
 // Admin imports
 import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
 import ProtectedRoute from "./components/Admin/ProtectedRoute";
+import UserProtectedRoute from "./components/User/UserProtectedRoute";
 
 import Layout from "./Layout";
 
@@ -48,7 +49,14 @@ const AppWithRoutes = () => {
           <Route path="events" element={<EventsPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
-          <Route path="user/dashboard" element={<DashboardPage />} />
+          <Route
+            path="user/dashboard"
+            element={
+              <UserProtectedRoute>
+                <DashboardPage />
+              </UserProtectedRoute>
+            }
+          />
           <Route path="join" element={<JoinPage />} />
         </Route>
         <Route path="/admin">

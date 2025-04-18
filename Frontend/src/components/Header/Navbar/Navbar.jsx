@@ -126,6 +126,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user: authUser, logout, isAuthenticated } = useAuth();
 
+  // Call isAuthenticated as a function to get the actual boolean value
+  const userIsAuthenticated = isAuthenticated();
+
   const handleLogout = () => {
     logout(navigate);
   };
@@ -183,7 +186,7 @@ const Navbar = () => {
             <ThemeToggle />
 
             {/* Show avatar dropdown if authenticated, otherwise show login button */}
-            {isAuthenticated ? (
+            {userIsAuthenticated ? (
               <UserMenuDropdown
                 authUser={authUser}
                 handleLogout={handleLogout}
@@ -222,7 +225,7 @@ const Navbar = () => {
                     ))}
 
                     {/* Show dashboard and logout links in mobile menu if authenticated */}
-                    {isAuthenticated ? (
+                    {userIsAuthenticated ? (
                       <>
                         <div className="border-t pt-4 mt-2">
                           <Link
