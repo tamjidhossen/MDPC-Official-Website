@@ -30,7 +30,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import { Loader2, AlertCircle, RefreshCcw, Download, Info } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCcw, Info } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -267,32 +267,6 @@ export default function AnalyticsSection() {
     fetchProblemDistribution();
   }, [selectedIndex, selectedContestType, selectedTiming]);
 
-  // Function to download chart data as CSV
-  const downloadCSV = () => {
-    if (!chartData.length) return;
-
-    const headers = ["Rating", "Count"];
-    const csvContent = [
-      headers.join(","),
-      ...chartData.map((row) => [row.rating, row.count].join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `problem_distribution_${selectedIndex}_${selectedTiming}.csv`
-    );
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -319,16 +293,6 @@ export default function AnalyticsSection() {
               <RefreshCcw className="h-4 w-4 mr-1" />
             )}
             Refresh
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadCSV}
-            disabled={isLoading || !chartData.length}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Export
           </Button>
         </div>
       </div>
@@ -521,25 +485,29 @@ export default function AnalyticsSection() {
                       dataKey="rating"
                       label={{
                         value: "Problem Rating",
-                        position: "insideBottom",
+                        position: "insideBottomRight",
                         offset: -10,
-                        fill: "var(--muted-foreground)",
+                        style: { fill: "currentColor", fontWeight: 500 },
                       }}
+                      tick={{ fill: "currentColor" }}
+                      stroke="currentColor"
                     />
                     <YAxis
                       label={{
                         value: "Number of Problems",
                         angle: -90,
                         position: "insideLeft",
-                        fill: "var(--muted-foreground)",
+                        style: { fill: "currentColor", fontWeight: 500 },
                       }}
+                      tick={{ fill: "currentColor" }}
+                      stroke="currentColor"
                     />
                     <Tooltip
                       content={
                         <CustomTooltip ratingColorMap={ratingColorMap} />
                       }
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ color: "currentColor" }} />
                     <Bar
                       dataKey="count"
                       name="Problem Count"
@@ -573,7 +541,7 @@ export default function AnalyticsSection() {
             {isLoading ? (
               <Skeleton className="h-6 w-20" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-foreground">
                 {stats.totalProblems.toLocaleString()}
               </div>
             )}
@@ -590,11 +558,16 @@ export default function AnalyticsSection() {
             {isLoading ? (
               <Skeleton className="h-6 w-20" />
             ) : (
-              <div
-                className="text-2xl font-bold"
-                style={{ color: getRatingColor(stats.mostCommonRating) }}
-              >
-                {stats.mostCommonRating}
+              <div className="flex items-center">
+                <span className="text-2xl font-bold text-foreground mr-2">
+                  {stats.mostCommonRating}
+                </span>
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{
+                    backgroundColor: getRatingColor(stats.mostCommonRating),
+                  }}
+                ></div>
               </div>
             )}
           </CardContent>
@@ -610,11 +583,14 @@ export default function AnalyticsSection() {
             {isLoading ? (
               <Skeleton className="h-6 w-20" />
             ) : (
-              <div
-                className="text-2xl font-bold"
-                style={{ color: getRatingColor(stats.avgRating) }}
-              >
-                {stats.avgRating}
+              <div className="flex items-center">
+                <span className="text-2xl font-bold text-foreground mr-2">
+                  {stats.avgRating}
+                </span>
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: getRatingColor(stats.avgRating) }}
+                ></div>
               </div>
             )}
           </CardContent>
@@ -630,11 +606,16 @@ export default function AnalyticsSection() {
             {isLoading ? (
               <Skeleton className="h-6 w-20" />
             ) : (
-              <div
-                className="text-2xl font-bold"
-                style={{ color: getRatingColor(stats.medianRating) }}
-              >
-                {stats.medianRating}
+              <div className="flex items-center">
+                <span className="text-2xl font-bold text-foreground mr-2">
+                  {stats.medianRating}
+                </span>
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{
+                    backgroundColor: getRatingColor(stats.medianRating),
+                  }}
+                ></div>
               </div>
             )}
           </CardContent>
