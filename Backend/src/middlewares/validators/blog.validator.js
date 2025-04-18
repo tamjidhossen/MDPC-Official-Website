@@ -36,15 +36,6 @@ export const createBlogValidator = [
     .isLength({ min: 50 })
     .withMessage("Content must be at least 50 characters"),
 
-  body("summary")
-    .notEmpty()
-    .withMessage("Summary is required")
-    .isString()
-    .withMessage("Summary must be a string")
-    .isLength({ min: 10, max: 500 })
-    .withMessage("Summary must be between 10 and 500 characters")
-    .trim(),
-
   body("tags").optional().isArray().withMessage("Tags must be an array"),
 
   body("tags.*")
@@ -75,13 +66,6 @@ export const updateBlogValidator = [
     .isLength({ min: 50 })
     .withMessage("Content must be at least 50 characters"),
 
-  body("summary")
-    .optional()
-    .isString()
-    .withMessage("Summary must be a string")
-    .isLength({ min: 10, max: 500 })
-    .withMessage("Summary must be between 10 and 500 characters")
-    .trim(),
 
   body("tags").optional().isArray().withMessage("Tags must be an array"),
 

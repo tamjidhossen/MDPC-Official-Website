@@ -30,7 +30,6 @@ router.get("/:id", idParamValidator, getBlog);
 router.post(
   "/",
   verifyJWT,
-  isActive,
   upload.single("image"),
   createBlogValidator,
   createBlog
@@ -38,12 +37,11 @@ router.post(
 router.put(
   "/:id",
   verifyJWT,
-  isActive,
   upload.single("image"),
   updateBlogValidator,
   updateBlog
 );
-router.delete("/:id", verifyJWT, isActive, idParamValidator, deleteBlog);
+router.delete("/:id", verifyJWT, idParamValidator, deleteBlog);
 
 // Admin routes
 router.patch(
