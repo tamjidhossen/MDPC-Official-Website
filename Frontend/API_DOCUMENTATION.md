@@ -522,7 +522,6 @@ Members represent club membership applications and approved members.
   content: "Dynamic programming is..."
   category: "Algorithms"
   tags: ["algorithms", "dynamic programming", "optimization"]
-  summary: "A brief introduction to dynamic programming concepts"
   image: <file>  // Optional file upload
   ```
 - **Response**:
@@ -542,7 +541,6 @@ Members represent club membership applications and approved members.
         "category": "Algorithms",
         "tags": ["algorithms", "dynamic programming", "optimization"],
         "status": "pending",
-        "summary": "A brief introduction to dynamic programming concepts",
         "image": "/uploads/images/blogs/image-123456.jpg",
         "createdAt": "2023-09-23T15:54:41.302Z",
         "updatedAt": "2023-09-23T15:54:41.302Z"
@@ -576,7 +574,6 @@ Members represent club membership applications and approved members.
         {
           "_id": "614c60a1e23d7f32c9b8e5a3",
           "title": "Understanding Dynamic Programming",
-          "summary": "A brief introduction to dynamic programming concepts",
           "author": {
             "_id": "614c5b68e987f321d8e9a4b2",
             "name": "John Doe",
@@ -627,7 +624,6 @@ Members represent club membership applications and approved members.
         "category": "Algorithms",
         "tags": ["algorithms", "dynamic programming", "optimization"],
         "status": "approved",
-        "summary": "A brief introduction to dynamic programming concepts",
         "image": "/uploads/images/blogs/image-123456.jpg",
         "publishedDate": "2023-09-24T09:30:15.000Z",
         "createdAt": "2023-09-23T15:54:41.302Z",
@@ -651,7 +647,6 @@ Members represent club membership applications and approved members.
   content: "Updated content..."
   category: "Algorithms"
   tags: ["algorithms", "dynamic programming", "optimization", "examples"]
-  summary: "A comprehensive guide to dynamic programming with examples"
   image: <file>  // Optional file upload
   ```
 - **Response**:
@@ -676,7 +671,6 @@ Members represent club membership applications and approved members.
           "examples"
         ],
         "status": "pending",
-        "summary": "A comprehensive guide to dynamic programming with examples",
         "image": "/uploads/images/blogs/image-789012.jpg"
       }
     },

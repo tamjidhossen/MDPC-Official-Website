@@ -36,7 +36,6 @@ const BlogManagementSection = () => {
     author: "",
     category: "",
     content: "",
-    summary: "",
   });
 
   // Dummy data for blogs
@@ -49,7 +48,7 @@ const BlogManagementSection = () => {
         date: "2025-04-10",
         category: "Algorithms",
         status: "pending",
-        summary:
+        content:
           "A comprehensive guide to understanding dynamic programming concepts and techniques.",
       },
       {
@@ -59,7 +58,7 @@ const BlogManagementSection = () => {
         date: "2025-04-08",
         category: "Algorithms",
         status: "pending",
-        summary:
+        content:
           "Exploring advanced graph algorithms used in competitive programming contests.",
       },
       {
@@ -69,7 +68,7 @@ const BlogManagementSection = () => {
         date: "2025-04-05",
         category: "Best Practices",
         status: "pending",
-        summary:
+        content:
           "Learn techniques to optimize your code for better performance in competitions.",
       },
     ],
@@ -81,7 +80,7 @@ const BlogManagementSection = () => {
         date: "2025-04-01",
         category: "Data Structures",
         status: "approved",
-        summary:
+        content:
           "Essential data structures every competitive programmer should master.",
       },
       {
@@ -91,7 +90,7 @@ const BlogManagementSection = () => {
         date: "2025-03-28",
         category: "Strategy",
         status: "approved",
-        summary:
+        content:
           "Strategies for tackling different types of problems on Codeforces.",
       },
     ],
@@ -103,7 +102,7 @@ const BlogManagementSection = () => {
         date: "2025-03-25",
         category: "Personal",
         status: "rejected",
-        summary:
+        content:
           "Personal story without technical depth required for the blog.",
       },
     ],
@@ -157,7 +156,6 @@ const BlogManagementSection = () => {
       author: "",
       category: "",
       content: "",
-      summary: "",
     });
     // Update UI accordingly
   };
@@ -234,19 +232,6 @@ const BlogManagementSection = () => {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="summary" className="text-right">
-                    Summary
-                  </Label>
-                  <Textarea
-                    id="summary"
-                    name="summary"
-                    value={newBlogData.summary}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="content" className="text-right">
                     Content
                   </Label>
@@ -314,7 +299,9 @@ const BlogManagementSection = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      {blog.summary}
+                      {blog.content
+                        ? blog.content.substring(0, 150) + "..."
+                        : "No content available"}
                     </p>
                   </CardContent>
                   <CardFooter className="flex justify-between">
@@ -363,7 +350,9 @@ const BlogManagementSection = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      {blog.summary}
+                      {blog.content
+                        ? blog.content.substring(0, 150) + "..."
+                        : "No content available"}
                     </p>
                   </CardContent>
                   <CardFooter className="flex justify-between">
@@ -410,7 +399,9 @@ const BlogManagementSection = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      {blog.summary}
+                      {blog.content
+                        ? blog.content.substring(0, 150) + "..."
+                        : "No content available"}
                     </p>
                   </CardContent>
                   <CardFooter className="flex justify-between">
@@ -461,13 +452,6 @@ const BlogManagementSection = () => {
               </DialogHeader>
               <div className="py-4">
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium">Summary</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedBlog.summary}
-                    </p>
-                  </div>
-                  <Separator />
                   <div>
                     <h3 className="text-sm font-medium">Content</h3>
                     <div className="prose dark:prose-invert mt-2">

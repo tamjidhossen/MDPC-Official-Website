@@ -167,7 +167,51 @@ export const userApi = {
 
 // Blog API endpoints
 export const blogApi = {
-  // Add blog-related API calls here
+  // Get all blogs with filters
+  getAll: async (params = {}) => {
+    const response = await apiClient.get("/blogs", { params });
+    return response.data;
+  },
+
+  // Get a specific blog by ID
+  getById: async (blogId) => {
+    const response = await apiClient.get(`/blogs/${blogId}`);
+    return response.data;
+  },
+
+  // Create a new blog
+  create: async (blogData) => {
+    const response = await apiClient.post("/blogs", blogData, {
+      headers: {
+        "Content-Type": "multipart/form-data", // For file uploads
+      },
+    });
+    return response.data;
+  },
+
+  // Update an existing blog
+  update: async (blogId, blogData) => {
+    const response = await apiClient.put(`/blogs/${blogId}`, blogData, {
+      headers: {
+        "Content-Type": "multipart/form-data", // For file uploads
+      },
+    });
+    return response.data;
+  },
+
+  // Delete a blog
+  delete: async (blogId) => {
+    const response = await apiClient.delete(`/blogs/${blogId}`);
+    return response.data;
+  },
+
+  // Get user's blogs (drafts, published)
+  getUserBlogs: async (params = {}) => {
+    // Create a special endpoint to get the current user's blogs
+    // This will bypass the regular status filtering rules
+    const response = await apiClient.get("/blogs/my-blogs", { params });
+    return response.data;
+  },
 };
 
 // Event API endpoints
