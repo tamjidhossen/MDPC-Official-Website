@@ -6,6 +6,7 @@ import {
   updateBlog,
   deleteBlog,
   updateBlogStatus,
+  getMyBlogs,
 } from "../controllers/blog.controller.js";
 import {
   verifyJWT,
@@ -24,9 +25,14 @@ const router = Router();
 
 // Public routes
 router.get("/", getAllBlogs);
+
+// Protected routes for current user - this must come before /:id
+router.get("/my-blogs", verifyJWT, getMyBlogs);
+
+// Get blog by ID route - must be after any specific routes with string paths
 router.get("/:id", idParamValidator, getBlog);
 
-// Protected routes
+// Other protected routes
 router.post(
   "/",
   verifyJWT,
