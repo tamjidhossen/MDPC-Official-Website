@@ -171,7 +171,7 @@ const SettingsSection = () => {
       toast({
         variant: "destructive",
         title: "Update Failed",
-        description: error.message || "An error occurred. Please try again.",
+        description: "An error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -213,7 +213,7 @@ const SettingsSection = () => {
       toast({
         variant: "destructive",
         title: "Update Failed",
-        description: error.message || "An error occurred. Please try again.",
+        description: "An error occurred. Please try again.",
       });
     } finally {
       setAvatarLoading(false);
@@ -267,7 +267,7 @@ const SettingsSection = () => {
       toast({
         variant: "destructive",
         title: "Update Failed",
-        description: error.message || "An error occurred. Please try again.",
+        description: "An error occurred. Please try again.",
       });
     } finally {
       setPasswordLoading(false);
