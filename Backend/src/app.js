@@ -21,7 +21,11 @@ import codeforcesRoutes from "./routes/codeforces.routes.js";
 const app = express();
 
 // Security middleware
-app.use(helmet()); // Set security headers
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow loading images from different origins
+  })
+); // Set security headers
 app.use(morgan("dev")); // Logging
 
 // Rate limiting
@@ -37,9 +41,10 @@ app.use(limiter);
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:4000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    exposedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

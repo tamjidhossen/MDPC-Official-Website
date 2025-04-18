@@ -121,3 +121,6 @@ dist
 # references
 copilot-reference.md
 codeforces-api-reference.md
+
+#files
+/public/uploads
