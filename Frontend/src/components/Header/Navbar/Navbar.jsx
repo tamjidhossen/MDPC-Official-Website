@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, User, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { getImageUrl } from "@/lib/utils";
 
 // User Avatar and Dropdown - moved outside of the Navbar component
 const UserMenuDropdown = ({ authUser, handleLogout, navigate }) => {
@@ -21,7 +22,7 @@ const UserMenuDropdown = ({ authUser, handleLogout, navigate }) => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-          <AvatarImage src={authUser?.avatar} />
+          <AvatarImage src={getImageUrl(authUser?.avatar)} />
           <AvatarFallback className="bg-primary text-primary-foreground">
             {authUser?.name?.charAt(0) || "U"}
           </AvatarFallback>
@@ -31,16 +32,21 @@ const UserMenuDropdown = ({ authUser, handleLogout, navigate }) => {
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span>{authUser?.name}</span>
-            <span className="text-xs text-muted-foreground truncate">{authUser?.email}</span>
+            <span className="text-xs text-muted-foreground truncate">
+              {authUser?.email}
+            </span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/user/dashboard')}>
+        <DropdownMenuItem onClick={() => navigate("/user/dashboard")}>
           <LayoutDashboard className="mr-2 h-4 w-4" />
           <span>Dashboard</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-red-500 focus:text-red-500"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>
         </DropdownMenuItem>
@@ -148,9 +154,7 @@ const Navbar = () => {
           <div className="flex-shrink-0 pl-1">
             <Link to="/" className="flex items-center gap-2">
               <img src="/midday.png" alt="MDPC Logo" className="h-8 w-8" />
-              <span className="hidden font-semibold lg:inline-block">
-              MDPC
-              </span>
+              <span className="hidden font-semibold lg:inline-block">MDPC</span>
               <span className="font-semibold lg:hidden">MDPC</span>
             </Link>
           </div>
@@ -177,10 +181,10 @@ const Navbar = () => {
           {/* Actions - right side */}
           <div className="flex items-center space-x-3 pr-1">
             <ThemeToggle />
-            
+
             {/* Show avatar dropdown if authenticated, otherwise show login button */}
             {isAuthenticated ? (
-              <UserMenuDropdown 
+              <UserMenuDropdown
                 authUser={authUser}
                 handleLogout={handleLogout}
                 navigate={navigate}
@@ -229,8 +233,8 @@ const Navbar = () => {
                             <LayoutDashboard className="h-4 w-4" />
                             Dashboard
                           </Link>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             className="w-full justify-start mt-2 text-red-500 hover:text-red-600 hover:bg-red-50 p-0"
                             onClick={() => {
                               setIsMenuOpen(false);

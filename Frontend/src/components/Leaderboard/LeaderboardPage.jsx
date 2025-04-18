@@ -17,183 +17,262 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Trophy, Medal, Loader2 } from "lucide-react";
-import { codeforcesApi } from "@/services/api";
+import useCodeforcesData from "@/hooks/useCodeforcesData"; // Import our custom hook
 
 const LeaderboardPage = () => {
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Use our custom hook for data fetching
+  const { getLeaderboard } = useCodeforcesData();
+
   // Fetch leaderboard data
   useEffect(() => {
     const fetchLeaderboardData = async () => {
       try {
         setLoading(true);
-        const response = await codeforcesApi.getLeaderboard();
-        console.log(response)
-        // Sort the data by rating (highest to lowest)
-        const sortedData = response.data.sort((a, b) => b.rating - a.rating);
 
-        // Add rank to each user
-        const rankedData = sortedData.map((user, index) => ({
-          ...user,
-          position: index + 1,
-        }));
+        // Fetch leaderboard data with our custom hook
+        const response = await getLeaderboard();
 
-        setLeaderboardData(rankedData);
-        setError(null);
+        if (response.data) {
+          // Sort the data by rating (highest to lowest)
+          const sortedData = response.data.sort((a, b) => b.rating - a.rating);
+          setLeaderboardData(sortedData);
+        } else {
+          setError(response.error || "Failed to fetch leaderboard data");
+        }
       } catch (err) {
-        console.error("Error fetching leaderboard data:", err);
-        setError("Failed to load leaderboard data. Please try again later.");
+        console.error("Error fetching leaderboard:", err);
+        setError("Failed to load leaderboard data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchLeaderboardData();
-  }, []);
+  }, [getLeaderboard]);
 
-  // Get the color for a CF rank
-  const getRankColor = (rank) => {
-    switch (rank) {
-      case "legendary grandmaster":
-        return "text-red-500 font-bold";
-      case "international grandmaster":
-        return "text-red-500";
-      case "grandmaster":
-        return "text-red-500";
-      case "master":
-        return "text-orange-500";
-      case "candidate master":
-        return "text-purple-500";
-      case "expert":
-        return "text-blue-500";
-      case "specialist":
-        return "text-cyan-500";
-      case "pupil":
-        return "text-green-500";
-      case "newbie":
-        return "text-gray-500";
+  // Helper function to get medal for top positions
+  const getMedalIcon = (position) => {
+    switch (position) {
+      case 0:
+        return <Trophy className="h-5 w-5 text-yellow-500" />;
+      case 1:
+        return <Medal className="h-5 w-5 text-gray-400" />;
+      case 2:
+        return <Medal className="h-5 w-5 text-amber-700" />;
       default:
-        return "text-gray-500";
+        return null;
     }
   };
 
+  // Helper function to get color based on Codeforces rating
+  const getRatingColor = (rating) => {
+    if (!rating) return "#000000";
+
+    if (rating < 1200) return "#808080"; // Gray (Newbie)
+    if (rating < 1400) return "#008000"; // Green (Pupil)
+    if (rating < 1600) return "#03a89e"; // Cyan (Specialist)
+    if (rating < 1900) return "#0000ff"; // Blue (Expert)
+    if (rating < 2100) return "#aa00aa"; // Purple (Candidate Master)
+    if (rating < 2400) return "#ff8c00"; // Orange (Master)
+    if (rating < 2600) return "#ff8c00"; // Orange (International Master)
+    if (rating < 3000) return "#ff0000"; // Red (Grandmaster)
+    return "#ff0000"; // Red (International Grandmaster)
+  };
+
+  // Helper function to get text color based on background color
+  const getTextColor = (rating) => {
+    if (rating >= 1600) return "text-white";
+    return "text-black";
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-10 flex justify-center">
+        <div className="w-full max-w-4xl flex flex-col items-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+          <p>Loading leaderboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-10 flex justify-center">
+        <div className="w-full max-w-4xl">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error Loading Leaderboard</CardTitle>
+              <CardDescription>
+                We encountered an issue while fetching the leaderboard data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-red-500">{error}</p>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+              >
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">
-          Leaderboard
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Our top competitive programmers ranked by their Codeforces ratings
+    <div className="container mx-auto py-10">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold mb-2">MDPC Leaderboard</h1>
+        <p className="text-muted-foreground">
+          Ranking based on Codeforces ratings from{" "}
+          <span className="font-medium">
+            Jatiya Kabi Kazi Nazrul Islam University
+          </span>
         </p>
       </div>
 
-      <Card className="mb-8">
+      {/* Top 3 Cards */}
+      {leaderboardData.length >= 3 && (
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          {/* 2nd Place */}
+          <Card className="border-2 border-gray-300">
+            <CardContent className="pt-6 flex flex-col items-center">
+              <div className="rounded-full bg-gray-200 p-3 mb-4">
+                <Medal className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-bold">{leaderboardData[1].handle}</h3>
+              <p
+                style={{ color: getRatingColor(leaderboardData[1].rating) }}
+                className="font-semibold"
+              >
+                {leaderboardData[1].rank}
+              </p>
+              <p className="text-2xl font-bold mt-2">
+                {leaderboardData[1].rating}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Max: {leaderboardData[1].maxRating}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* 1st Place */}
+          <Card className="border-2 border-yellow-500 -mt-4">
+            <div className="bg-gradient-to-b from-yellow-200 to-transparent pt-1">
+              <CardContent className="pt-8 flex flex-col items-center">
+                <div className="rounded-full bg-yellow-100 p-4 mb-4 border-2 border-yellow-500">
+                  <Trophy className="h-10 w-10 text-yellow-500" />
+                </div>
+                <h3 className="text-xl font-bold">
+                  {leaderboardData[0].handle}
+                </h3>
+                <p
+                  style={{ color: getRatingColor(leaderboardData[0].rating) }}
+                  className="font-semibold"
+                >
+                  {leaderboardData[0].rank}
+                </p>
+                <p className="text-3xl font-bold mt-2">
+                  {leaderboardData[0].rating}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Max: {leaderboardData[0].maxRating}
+                </p>
+              </CardContent>
+            </div>
+          </Card>
+
+          {/* 3rd Place */}
+          <Card className="border-2 border-amber-700">
+            <CardContent className="pt-6 flex flex-col items-center">
+              <div className="rounded-full bg-amber-100 p-3 mb-4">
+                <Medal className="h-8 w-8 text-amber-700" />
+              </div>
+              <h3 className="text-lg font-bold">{leaderboardData[2].handle}</h3>
+              <p
+                style={{ color: getRatingColor(leaderboardData[2].rating) }}
+                className="font-semibold"
+              >
+                {leaderboardData[2].rank}
+              </p>
+              <p className="text-2xl font-bold mt-2">
+                {leaderboardData[2].rating}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Max: {leaderboardData[2].maxRating}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Full Leaderboard */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            <span>Top Performers</span>
-          </CardTitle>
-          <CardDescription>Leaderboard data from Codeforces</CardDescription>
+          <CardTitle>Full Rankings</CardTitle>
+          <CardDescription>
+            Members of the Mid-Day Programming Club ranked by Codeforces rating
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 flex flex-wrap gap-2">
-            <Button variant="default">All Time</Button>
-            {/* Monthly and weekly filters could be added in the future */}
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2">Loading leaderboard data...</span>
-            </div>
-          ) : error ? (
-            <div className="py-8 text-center text-rose-500">
-              <p>{error}</p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">Rank</TableHead>
-                    <TableHead>Handle</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Max Rating</TableHead>
-                    <TableHead>CF Rank</TableHead>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Rank</TableHead>
+                  <TableHead>Handle</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Max Rating</TableHead>
+                  <TableHead>Title</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaderboardData.map((user, index) => (
+                  <TableRow key={user.handle}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {getMedalIcon(index)}
+                        {index + 1}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <a
+                        href={`https://codeforces.com/profile/${user.handle}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:underline"
+                      >
+                        {user.handle}
+                      </a>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {user.rating}
+                    </TableCell>
+                    <TableCell>{user.maxRating}</TableCell>
+                    <TableCell>
+                      <span
+                        className={`px-2 py-1 rounded text-sm font-medium ${getTextColor(
+                          user.rating
+                        )}`}
+                        style={{ backgroundColor: getRatingColor(user.rating) }}
+                      >
+                        {user.rank || "Unrated"}
+                      </span>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leaderboardData.map((user) => (
-                    <TableRow key={user.handle}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {user.position <= 3 ? (
-                            <Medal
-                              className={`h-5 w-5 ${
-                                user.position === 1
-                                  ? "text-amber-500"
-                                  : user.position === 2
-                                  ? "text-gray-400"
-                                  : "text-amber-700"
-                              }`}
-                            />
-                          ) : (
-                            user.position
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <a
-                          href={`https://codeforces.com/profile/${user.handle}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline"
-                        >
-                          {user.handle}
-                        </a>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {user.rating}
-                      </TableCell>
-                      <TableCell>{user.maxRating}</TableCell>
-                      <TableCell>
-                        <span className={getRankColor(user.rank)}>
-                          {user.rank.charAt(0).toUpperCase() +
-                            user.rank.slice(1)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
-
-      <div className="text-center mt-12">
-        <h2 className="text-2xl font-bold mb-4">About Codeforces Rating</h2>
-        <div className="max-w-3xl mx-auto text-muted-foreground">
-          <p>
-            Codeforces uses the Elo rating system to evaluate contestant
-            performance. Ratings are updated after each contest.
-          </p>
-          <ul className="list-disc list-inside mt-4">
-            <li>Newbie: &lt; 1200</li>
-            <li>Pupil: 1200 - 1399</li>
-            <li>Specialist: 1400 - 1599</li>
-            <li>Expert: 1600 - 1899</li>
-            <li>Candidate Master: 1900 - 2099</li>
-            <li>Master: 2100 - 2299</li>
-            <li>Grandmaster: 2300 - 2599</li>
-            <li>International Grandmaster: 2600 - 2999</li>
-            <li>Legendary Grandmaster: &gt;= 3000</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 };

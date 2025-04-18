@@ -57,6 +57,21 @@ export const userApi = {
   // Login user
   login: async (credentials) => {
     const response = await apiClient.post("/users/login", credentials);
+
+    // Parse programmingHandles if it exists and is a string
+    if (response.data?.data?.user?.programmingHandles) {
+      try {
+        if (typeof response.data.data.user.programmingHandles === "string") {
+          response.data.data.user.programmingHandles = JSON.parse(
+            response.data.data.user.programmingHandles
+          );
+        }
+      } catch (error) {
+        console.error("Error parsing programmingHandles:", error);
+        response.data.data.user.programmingHandles = {};
+      }
+    }
+
     return response.data;
   },
 
@@ -69,6 +84,53 @@ export const userApi = {
   // Get current user profile
   getProfile: async () => {
     const response = await apiClient.get("/users/profile");
+
+    // Parse programmingHandles if it's a string
+    if (response.data?.data?.user?.programmingHandles) {
+      try {
+        if (typeof response.data.data.user.programmingHandles === "string") {
+          response.data.data.user.programmingHandles = JSON.parse(
+            response.data.data.user.programmingHandles
+          );
+        }
+      } catch (error) {
+        console.error("Error parsing programmingHandles:", error);
+        // If parsing fails, set to empty object to avoid errors
+        response.data.data.user.programmingHandles = {};
+      }
+    }
+
+    return response.data;
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    const response = await apiClient.put("/users/profile", profileData, {
+      headers: {
+        "Content-Type": "multipart/form-data", // Important for file uploads
+      },
+    });
+
+    // Parse programmingHandles in the response if it exists
+    if (response.data?.data?.user?.programmingHandles) {
+      try {
+        if (typeof response.data.data.user.programmingHandles === "string") {
+          response.data.data.user.programmingHandles = JSON.parse(
+            response.data.data.user.programmingHandles
+          );
+        }
+      } catch (error) {
+        console.error("Error parsing programmingHandles:", error);
+        response.data.data.user.programmingHandles = {};
+      }
+    }
+
+    return response.data;
+  },
+
+  // Change password
+  changePassword: async (passwordData) => {
+    const response = await apiClient.put("/users/password", passwordData);
     return response.data;
   },
 

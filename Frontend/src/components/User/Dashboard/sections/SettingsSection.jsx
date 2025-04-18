@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,10 +11,269 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { cfUserProfile } from "../utils/ratingUtils";
+import { useAuth } from "@/context/AuthContext";
+import { userApi } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
+import { getImageUrl } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 const SettingsSection = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  // Form states
+  const [profileData, setProfileData] = useState({
+    name: user?.name || "",
+  });
+
+  const [programmingHandles, setProgrammingHandles] = useState({
+    codeforces: cfUserProfile?.handle || "",
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Load user data
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+      });
+
+      if (user.programmingHandles) {
+        setProgrammingHandles({
+          codeforces:
+            user.programmingHandles.codeforces || cfUserProfile?.handle || "",
+        });
+      }
+    }
+  }, [user]);
+
+  // Handle avatar file change
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle profile data change
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle programming handles change
+  const handleHandleChange = (e) => {
+    const { name, value } = e.target;
+    setProgrammingHandles((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle password data change
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Manually refresh user data
+  const refreshUserData = async () => {
+    try {
+      const response = await userApi.getProfile();
+      if (response.success) {
+        // We can't update the context directly, but we can show success message
+        // The user will see updated data on page refresh
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      return false;
+    }
+  };
+
+  // Update profile
+  const handleProfileUpdate = async (e) => {
+    if (e) e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Create form data to handle file upload
+      const formData = new FormData();
+      formData.append("name", profileData.name);
+
+      // Add programming handles as JSON
+      formData.append(
+        "programmingHandles",
+        JSON.stringify(
+          Object.fromEntries(
+            Object.entries(programmingHandles).filter(
+              ([_, value]) => value !== ""
+            )
+          )
+        )
+      );
+
+      // Add avatar if changed
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
+
+      // Call API to update profile
+      const response = await userApi.updateProfile(formData);
+
+      if (response.success) {
+        toast({
+          title: "Profile Updated",
+          description:
+            "Your profile has been updated successfully. Changes will appear after page refresh.",
+        });
+
+        // Try to refresh user data
+        await refreshUserData();
+
+        // Reset avatar file state if it was included
+        if (avatarFile) {
+          setAvatarFile(null);
+          // Keep the preview to show the user their current avatar
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description: "Failed to update profile. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "An error occurred. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update avatar
+  const handleAvatarUpdate = async () => {
+    if (!avatarFile) return;
+
+    setAvatarLoading(true);
+    const formData = new FormData();
+    formData.append("avatar", avatarFile);
+
+    try {
+      const response = await userApi.updateProfile(formData);
+
+      if (response.success) {
+        toast({
+          title: "Avatar Updated",
+          description:
+            "Your profile picture has been updated. It will appear after page refresh.",
+        });
+
+        // Try to refresh user data
+        await refreshUserData();
+
+        // Reset avatar file state but keep the preview
+        setAvatarFile(null);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description: "Failed to update avatar. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Avatar update error:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "An error occurred. Please try again.",
+      });
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  // Change password
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+
+    // Validate passwords
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Password Mismatch",
+        description: "New password and confirmation do not match.",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const response = await userApi.changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+
+      if (response.success) {
+        toast({
+          title: "Password Changed",
+          description: "Your password has been updated successfully.",
+        });
+
+        // Clear password fields
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description:
+            "Failed to change password. Please check your current password.",
+        });
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "An error occurred. Please try again.",
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Settings</h1>
@@ -29,40 +288,91 @@ const SettingsSection = () => {
             <div className="flex flex-col items-center gap-4">
               <Avatar className="h-32 w-32">
                 <AvatarImage
-                  src={cfUserProfile.avatar}
-                  alt={cfUserProfile.handle}
+                  src={
+                    avatarPreview ||
+                    getImageUrl(user?.avatar) ||
+                    cfUserProfile?.avatar
+                  }
+                  alt={user?.name || cfUserProfile?.handle}
                 />
                 <AvatarFallback>
-                  {cfUserProfile.handle[0].toUpperCase()}
+                  {(
+                    user?.name?.[0] ||
+                    cfUserProfile?.handle?.[0] ||
+                    "U"
+                  ).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col gap-2">
-                <Button size="sm">Change Avatar</Button>
-                <Button variant="outline" size="sm">
-                  Remove Photo
-                </Button>
+              <div className="flex flex-col gap-2 w-full">
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                <label htmlFor="avatar-upload">
+                  <Button size="sm" className="w-full" asChild>
+                    <span>Change Avatar</span>
+                  </Button>
+                </label>
+                {avatarFile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAvatarUpdate}
+                    disabled={avatarLoading}
+                  >
+                    {avatarLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      "Upload"
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 w-full">
+            <form
+              onSubmit={handleProfileUpdate}
+              className="flex-1 space-y-4 w-full"
+            >
               <div className="space-y-2">
                 <label className="text-sm font-medium">Full Name</label>
-                <Input defaultValue="Ahmed Khan" />
+                <Input
+                  name="name"
+                  value={profileData.name}
+                  onChange={handleProfileChange}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email Address</label>
-                <Input defaultValue="ahmed@example.com" />
+                <Input
+                  value={user?.email || ""}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email cannot be changed. Contact an administrator if needed.
+                </p>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Bio</label>
-                <Textarea defaultValue="Competitive programmer and algorithm enthusiast. I love solving challenging problems and sharing knowledge with the CP community." />
-              </div>
-            </div>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Profile Changes"
+                )}
+              </Button>
+            </form>
           </div>
         </CardContent>
-        <CardFooter>
-          <Button>Save Changes</Button>
-        </CardFooter>
       </Card>
 
       <Card>
@@ -75,23 +385,24 @@ const SettingsSection = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Codeforces Handle</label>
-            <Input defaultValue={cfUserProfile.handle} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">AtCoder Handle</label>
-            <Input placeholder="Enter your AtCoder handle" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">LeetCode Handle</label>
-            <Input placeholder="Enter your LeetCode handle" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">SPOJ Handle</label>
-            <Input placeholder="Enter your SPOJ handle" />
+            <Input
+              name="codeforces"
+              value={programmingHandles.codeforces}
+              onChange={handleHandleChange}
+            />
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Update Handles</Button>
+          <Button onClick={handleProfileUpdate} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Handles"
+            )}
+          </Button>
         </CardFooter>
       </Card>
 
@@ -102,86 +413,57 @@ const SettingsSection = () => {
             Update your password and security settings
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Current Password</label>
-            <Input type="password" placeholder="Enter your current password" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">New Password</label>
-            <Input type="password" placeholder="Enter new password" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Confirm New Password</label>
-            <Input type="password" placeholder="Confirm new password" />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button>Change Password</Button>
-        </CardFooter>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Notification Settings</CardTitle>
-          <CardDescription>
-            Manage how and when you receive notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">
-                  Receive notifications about contests via email
-                </p>
-              </div>
-              <Switch />
+        <form onSubmit={handlePasswordUpdate}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Current Password</label>
+              <Input
+                type="password"
+                name="currentPassword"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter your current password"
+                required
+              />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Upcoming Contest Reminders</p>
-                <p className="text-sm text-muted-foreground">
-                  Get reminded about contests you've registered for
-                </p>
-              </div>
-              <Switch defaultChecked />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New Password</label>
+              <Input
+                type="password"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter new password"
+                required
+              />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Blog Comment Notifications</p>
-                <p className="text-sm text-muted-foreground">
-                  Receive notifications when someone comments on your blog
-                </p>
-              </div>
-              <Switch defaultChecked />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Confirm New Password
+              </label>
+              <Input
+                type="password"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                placeholder="Confirm new password"
+                required
+              />
             </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button>Save Preferences</Button>
-        </CardFooter>
-      </Card>
-
-      <Card className="border-destructive/10 bg-destructive/5">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Irreversible actions for your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Delete Account</p>
-              <p className="text-sm text-muted-foreground">
-                Permanently delete your account and all associated data
-              </p>
-            </div>
-            <Button variant="destructive">Delete Account</Button>
-          </div>
-        </CardContent>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" disabled={passwordLoading}>
+              {passwordLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Changing Password...
+                </>
+              ) : (
+                "Change Password"
+              )}
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

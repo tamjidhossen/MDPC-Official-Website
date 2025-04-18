@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useMemo } from "react";
+import useCodeforcesData from "@/hooks/useCodeforcesData";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -15,315 +17,862 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
-  problemIndexData,
-  problemRatingData,
-  contestTypeData,
-  timeFilteredData,
-} from "../utils/ratingUtils";
+  Loader2,
+  AlertCircle,
+  BarChartIcon,
+  PieChartIcon,
+  RefreshCcw,
+  Download,
+  Info,
+  TrendingUp,
+} from "lucide-react";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
-const AnalyticsSection = () => {
-  const [timeFrame, setTimeFrame] = useState("all-time");
-  const [indexFilter, setIndexFilter] = useState("all");
-  const [contestTypeFilter, setContestTypeFilter] = useState("all");
+// Custom tooltip component for the chart
+const CustomTooltip = ({ active, payload, label, ratingColorMap }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border rounded-md p-3 shadow-lg">
+        <p className="font-medium">
+          Rating:{" "}
+          <span
+            style={{ color: ratingColorMap.get(payload[0].payload.rating) }}
+          >
+            {payload[0].payload.rating}
+          </span>
+        </p>
+        <p className="text-muted-foreground">Count: {payload[0].value}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
-  // Get the current data based on selected time frame
-  const currentData = timeFilteredData[timeFrame] || problemRatingData;
+// Color mapping for Codeforces ratings
+const getRatingColor = (rating) => {
+  const ratingNum = parseInt(rating);
+  if (ratingNum < 1200) return "#808080"; // Gray
+  if (ratingNum < 1400) return "#4CAF50"; // Green
+  if (ratingNum < 1600) return "#03A9F4"; // Cyan
+  if (ratingNum < 1900) return "#2196F3"; // Blue
+  if (ratingNum < 2100) return "#9C27B0"; // Purple
+  if (ratingNum < 2400) return "#FF9800"; // Orange
+  if (ratingNum < 2600) return "#F44336"; // Red
+  return "#E91E63"; // Magenta
+};
 
-  const indexWiseSolvedData = [
-    { index: "A", solved: 45, attempted: 50, total: 60 },
-    { index: "B", solved: 38, attempted: 45, total: 55 },
-    { index: "C", solved: 29, attempted: 40, total: 50 },
-    { index: "D", solved: 18, attempted: 30, total: 45 },
-    { index: "E", solved: 10, attempted: 20, total: 35 },
-    { index: "F", solved: 5, attempted: 15, total: 25 },
-    { index: "G", solved: 2, attempted: 7, total: 15 },
-    { index: "H", solved: 1, attempted: 3, total: 10 },
-  ];
+// Maps rating to title
+const getRatingTitle = (rating) => {
+  const ratingNum = parseInt(rating);
+  if (ratingNum < 1200) return "Newbie";
+  if (ratingNum < 1400) return "Pupil";
+  if (ratingNum < 1600) return "Specialist";
+  if (ratingNum < 1900) return "Expert";
+  if (ratingNum < 2100) return "Candidate Master";
+  if (ratingNum < 2400) return "Master";
+  if (ratingNum < 2600) return "International Master";
+  if (ratingNum < 3000) return "Grandmaster";
+  return "International Grandmaster";
+};
+
+export default function AnalyticsSection() {
+  // Chart type state
+  const [chartType, setChartType] = useState("bar");
+
+  // Filter states
+  const [selectedIndex, setSelectedIndex] = useState("all");
+  const [selectedContestType, setSelectedContestType] = useState("all");
+  const [selectedTiming, setSelectedTiming] = useState("all");
+
+  // Fetch data using our custom hook
+  const { loading, getProblemDistribution, clearCache } = useCodeforcesData();
+
+  const [distributionData, setDistributionData] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
+
+  // Filter options
+  const indices = useMemo(
+    () => [
+      "all",
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+    ],
+    []
+  );
+
+  const contestTypes = useMemo(
+    () => [
+      { value: "all", label: "All Types" },
+      { value: "div1", label: "Div. 1" },
+      { value: "div2", label: "Div. 2" },
+      { value: "div3", label: "Div. 3" },
+      { value: "div4", label: "Div. 4" },
+      { value: "div1_div2", label: "Div. 1 + Div. 2" },
+      { value: "global", label: "Global Round" },
+      { value: "educational", label: "Educational" },
+    ],
+    []
+  );
+
+  const timings = useMemo(
+    () => [
+      { value: "all", label: "All time" },
+      { value: "week", label: "Last Week" },
+      { value: "month", label: "Last Month" },
+      { value: "3months", label: "Last 3 Months" },
+      { value: "6months", label: "Last 6 Months" },
+      { value: "year", label: "Last Year" },
+      { value: "2years", label: "Last 2 Years" },
+      { value: "4years", label: "Last 4 Years" },
+    ],
+    []
+  );
+
+  // Create a Map for rating colors for easy lookup
+  const ratingColorMap = useMemo(() => {
+    const map = new Map();
+    if (distributionData?.ratingDistribution) {
+      Object.keys(distributionData.ratingDistribution).forEach((rating) => {
+        map.set(rating, getRatingColor(rating));
+      });
+    }
+    return map;
+  }, [distributionData]);
+
+  // Fetch problem distribution data
+  const fetchProblemDistribution = async (force = false) => {
+    setIsLoading(true);
+    setFetchError(null);
+
+    try {
+      // Force refresh data if requested
+      if (force) {
+        clearCache("problemDistribution");
+      }
+
+      // Prepare params based on selected filters
+      const params = {};
+      if (selectedIndex !== "all") params.index = selectedIndex;
+
+      if (selectedContestType !== "all") {
+        params.contestType =
+          contestTypes.find((ct) => ct.value === selectedContestType)?.label ||
+          "All Types";
+      }
+
+      if (selectedTiming !== "all") {
+        params.timing =
+          timings.find((t) => t.value === selectedTiming)?.label || "All time";
+      }
+
+      // Fetch data with our custom hook
+      const result = await getProblemDistribution(params);
+
+      if (result.error) {
+        setFetchError(result.error);
+        setDistributionData(null);
+      } else {
+        setDistributionData(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching problem distribution data:", error);
+      setFetchError(
+        error.message || "Failed to load problem distribution data"
+      );
+      setDistributionData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Transform rating distribution data for charts
+  const chartData = useMemo(() => {
+    if (!distributionData?.ratingDistribution) return [];
+
+    return Object.entries(distributionData.ratingDistribution)
+      .map(([rating, count]) => ({
+        rating,
+        count,
+        title: getRatingTitle(rating),
+      }))
+      .sort((a, b) => parseInt(a.rating) - parseInt(b.rating));
+  }, [distributionData]);
+
+  // Calculate statistics from the data
+  const stats = useMemo(() => {
+    if (!chartData.length)
+      return {
+        totalProblems: 0,
+        mostCommonRating: "-",
+        avgRating: 0,
+        medianRating: "-",
+        commonTitle: "-",
+      };
+
+    // Total problems count
+    const totalProblems = chartData.reduce((sum, item) => sum + item.count, 0);
+
+    // Most common rating
+    const mostCommon = chartData.reduce(
+      (max, item) => (item.count > max.count ? item : max),
+      { count: 0 }
+    );
+
+    // Calculate weighted average rating
+    const avgRating = chartData.length
+      ? (
+          chartData.reduce(
+            (sum, item) => sum + parseInt(item.rating) * item.count,
+            0
+          ) / totalProblems
+        ).toFixed(0)
+      : 0;
+
+    // Calculate median rating
+    let cumulativeCount = 0;
+    const medianPoint = totalProblems / 2;
+    let medianRating = "-";
+
+    for (const item of chartData) {
+      cumulativeCount += item.count;
+      if (cumulativeCount >= medianPoint) {
+        medianRating = item.rating;
+        break;
+      }
+    }
+
+    return {
+      totalProblems,
+      mostCommonRating: mostCommon.rating || "-",
+      avgRating,
+      medianRating,
+      commonTitle: mostCommon.title || "-",
+    };
+  }, [chartData]);
+
+  // Calculate rating distribution for pie chart
+  const ratingGroupData = useMemo(() => {
+    if (!chartData.length) return [];
+
+    const ratingGroups = {
+      Newbie: { count: 0, color: "#808080" },
+      Pupil: { count: 0, color: "#4CAF50" },
+      Specialist: { count: 0, color: "#03A9F4" },
+      Expert: { count: 0, color: "#2196F3" },
+      "Candidate Master": { count: 0, color: "#9C27B0" },
+      Master: { count: 0, color: "#FF9800" },
+      "International Master": { count: 0, color: "#F44336" },
+      "Grandmaster+": { count: 0, color: "#E91E63" },
+    };
+
+    chartData.forEach((item) => {
+      const rating = parseInt(item.rating);
+      if (rating < 1200) ratingGroups["Newbie"].count += item.count;
+      else if (rating < 1400) ratingGroups["Pupil"].count += item.count;
+      else if (rating < 1600) ratingGroups["Specialist"].count += item.count;
+      else if (rating < 1900) ratingGroups["Expert"].count += item.count;
+      else if (rating < 2100)
+        ratingGroups["Candidate Master"].count += item.count;
+      else if (rating < 2400) ratingGroups["Master"].count += item.count;
+      else if (rating < 2600)
+        ratingGroups["International Master"].count += item.count;
+      else ratingGroups["Grandmaster+"].count += item.count;
+    });
+
+    return Object.entries(ratingGroups)
+      .filter(([, data]) => data.count > 0)
+      .map(([name, data]) => ({
+        name,
+        value: data.count,
+        color: data.color,
+      }));
+  }, [chartData]);
+
+  // Index distribution data for secondary chart
+  const indexDistributionData = useMemo(() => {
+    if (!distributionData?.indexDistribution) return [];
+
+    return Object.entries(distributionData.indexDistribution)
+      .map(([index, count]) => ({ index, count }))
+      .sort((a, b) => a.index.localeCompare(b.index));
+  }, [distributionData]);
+
+  // Effect to fetch data when filters change
+  useEffect(() => {
+    fetchProblemDistribution();
+  }, [selectedIndex, selectedContestType, selectedTiming]);
+
+  // Function to download chart data as CSV
+  const downloadCSV = () => {
+    if (!chartData.length) return;
+
+    const headers = ["Rating", "Title", "Count"];
+    const csvContent = [
+      headers.join(","),
+      ...chartData.map((row) => [row.rating, row.title, row.count].join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `problem_distribution_${selectedIndex}_${selectedTiming}.csv`
+    );
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">CF Problem Analytics</h1>
-        <div className="flex items-center gap-2">
-          <Select value={timeFrame} onValueChange={setTimeFrame}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select time period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="last-week">Last Week</SelectItem>
-              <SelectItem value="last-month">Last Month</SelectItem>
-              <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-              <SelectItem value="last-year">Last Year</SelectItem>
-              <SelectItem value="all-time">All Time</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Problem Analytics
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Visualize and analyze Codeforces problem distribution by rating and
+            other parameters
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchProblemDistribution(true)}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <RefreshCcw className="h-4 w-4 mr-1" />
+            )}
+            Refresh
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadCSV}
+            disabled={isLoading || !chartData.length}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export
+          </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Problems Solved by Index</CardTitle>
-          <CardDescription>
-            Detailed breakdown of your problem-solving patterns by problem index
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {indexWiseSolvedData.map((item) => (
-              <div
-                key={item.index}
-                className="bg-card border rounded-xl p-4 flex flex-col items-center"
-              >
-                <div className="rounded-full w-10 h-10 bg-primary/10 flex items-center justify-center mb-2">
-                  <span className="text-lg font-bold text-primary">
-                    {item.index}
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2 mb-2">
-                  <div
-                    className="bg-primary h-2 rounded-full"
-                    style={{ width: `${(item.solved / item.total) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-bold">
-                    {item.solved}/{item.total}
-                  </p>
-                  <p className="text-xs text-muted-foreground">solved</p>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {Math.round((item.solved / item.total) * 100)}% completion
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Error Alert */}
+      {fetchError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {fetchError}. Please try refreshing the data.
+          </AlertDescription>
+        </Alert>
+      )}
 
-          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-            <h3 className="text-lg font-medium mb-2">
-              Problem-Solving Patterns
-            </h3>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-sm">Strong at: A, B problems</span>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Filters Card */}
+        <Card className="md:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <div className="flex items-center justify-between w-full">
+                Filter Parameters
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">About Problem Filters</h4>
+                      <p className="text-sm text-muted-foreground">
+                        These filters allow you to analyze problems by index
+                        (difficulty within a contest), contest type, and time
+                        period. Changes are applied automatically.
+                      </p>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span className="text-sm">Improving: C, D problems</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-sm">Need work: E+ problems</span>
-              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Index Filter (as Tabs) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Problem Index</label>
+              <Tabs
+                defaultValue={selectedIndex}
+                onValueChange={setSelectedIndex}
+                className="w-full"
+              >
+                <TabsList className="grid grid-cols-5">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="A">A</TabsTrigger>
+                  <TabsTrigger value="B">B</TabsTrigger>
+                  <TabsTrigger value="C">C</TabsTrigger>
+                  <TabsTrigger value="D">D</TabsTrigger>
+                </TabsList>
+                <TabsList className="grid grid-cols-5 mt-2">
+                  <TabsTrigger value="E">E</TabsTrigger>
+                  <TabsTrigger value="F">F</TabsTrigger>
+                  <TabsTrigger value="G">G</TabsTrigger>
+                  <TabsTrigger value="H">H</TabsTrigger>
+                  <TabsTrigger value="I+">I+</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Problem Index Analytics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Problems by Index</CardTitle>
-          <CardDescription>
-            Distribution of problems solved by index (A, B, C, etc)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={problemIndexData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="index" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="solved" name="Solved" fill="#0088FE" />
-                <Bar dataKey="attempted" name="Attempted" fill="#FFBB28" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Problem Rating Analytics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Problems by Rating</CardTitle>
-          <CardDescription>
-            Distribution of problems by difficulty rating
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={currentData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="rating" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="solved" name="Solved" fill="#00C49F" />
-                <Bar dataKey="count" name="Available" fill="#0088FE" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Contest Type Analytics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Problems by Contest Type</CardTitle>
-          <CardDescription>
-            Distribution of problems solved by contest division
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={contestTypeData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="type" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Bar
-                  yAxisId="left"
-                  dataKey="participated"
-                  name="Contests Participated"
-                  fill="#8884d8"
-                />
-                <Bar
-                  yAxisId="right"
-                  dataKey="solved"
-                  name="Problems Solved"
-                  fill="#82ca9d"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Advanced filters card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Advanced Analysis</CardTitle>
-          <CardDescription>
-            Detailed breakdown with customizable filters
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Contest Type
-              </label>
+            {/* Contest Type Filter (as Select) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Contest Type</label>
               <Select
-                value={contestTypeFilter}
-                onValueChange={setContestTypeFilter}
+                value={selectedContestType}
+                onValueChange={setSelectedContestType}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select contest type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Contests</SelectItem>
-                  <SelectItem value="div1">Div. 1</SelectItem>
-                  <SelectItem value="div2">Div. 2</SelectItem>
-                  <SelectItem value="div3">Div. 3</SelectItem>
-                  <SelectItem value="div4">Div. 4</SelectItem>
-                  <SelectItem value="educational">Educational</SelectItem>
-                  <SelectItem value="global">Global</SelectItem>
+                  {contestTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Problem Index
-              </label>
-              <Select value={indexFilter} onValueChange={setIndexFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select problem index" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Indices</SelectItem>
-                  <SelectItem value="A">A</SelectItem>
-                  <SelectItem value="B">B</SelectItem>
-                  <SelectItem value="C">C</SelectItem>
-                  <SelectItem value="D">D</SelectItem>
-                  <SelectItem value="E">E</SelectItem>
-                  <SelectItem value="F+">F+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Time Period
-              </label>
-              <Select value={timeFrame} onValueChange={setTimeFrame}>
+            {/* Time Period Filter (as Select) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Time Period</label>
+              <Select value={selectedTiming} onValueChange={setSelectedTiming}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select time period" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="last-week">Last Week</SelectItem>
-                  <SelectItem value="last-month">Last Month</SelectItem>
-                  <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-                  <SelectItem value="last-year">Last Year</SelectItem>
-                  <SelectItem value="all-time">All Time</SelectItem>
+                  {timings.map((time) => (
+                    <SelectItem key={time.value} value={time.value}>
+                      {time.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="bg-muted/30 p-4 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium">Problem Solving Rate</h3>
-                <Badge>{Math.floor(Math.random() * 8) + 2} problems/week</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <h3 className="font-medium">Accuracy Rate</h3>
-                <Badge variant="outline">
-                  {Math.floor(Math.random() * 26) + 75}%
+            {/* Active Filters */}
+            <div className="pt-4 space-y-2">
+              <h4 className="text-sm font-medium">Active Filters:</h4>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">
+                  Index: {selectedIndex === "all" ? "All" : selectedIndex}
+                </Badge>
+                <Badge variant="secondary">
+                  Contest:{" "}
+                  {contestTypes.find((ct) => ct.value === selectedContestType)
+                    ?.label || "All Types"}
+                </Badge>
+                <Badge variant="secondary">
+                  Time:{" "}
+                  {timings.find((t) => t.value === selectedTiming)?.label ||
+                    "All time"}
                 </Badge>
               </div>
             </div>
+          </CardContent>
 
-            <div className="bg-muted/30 p-4 rounded-lg flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Recommendations</h3>
-                <p className="text-sm text-muted-foreground">
-                  Based on your performance
-                </p>
-              </div>
-              <Button variant="outline" size="sm">
-                View Suggested Problems
+          {/* Chart Selection */}
+          <CardFooter className="border-t pt-4 flex flex-col items-stretch">
+            <h4 className="text-sm font-medium mb-2">Chart Type</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={chartType === "bar" ? "default" : "outline"}
+                onClick={() => setChartType("bar")}
+                size="sm"
+                className="flex items-center justify-center"
+              >
+                <BarChartIcon className="h-4 w-4 mr-2" />
+                Bar Chart
+              </Button>
+              <Button
+                variant={chartType === "pie" ? "default" : "outline"}
+                onClick={() => setChartType("pie")}
+                size="sm"
+                className="flex items-center justify-center"
+              >
+                <PieChartIcon className="h-4 w-4 mr-2" />
+                Pie Chart
               </Button>
             </div>
+          </CardFooter>
+        </Card>
+
+        {/* Chart Card */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>
+                Rating Distribution
+                {selectedIndex !== "all" && ` - Index ${selectedIndex}`}
+              </span>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvancedStats(!showAdvancedStats)}
+              >
+                {showAdvancedStats ? "Hide" : "Show"} Advanced Stats
+              </Button>
+            </CardTitle>
+            <CardDescription>
+              Distribution of problems by difficulty rating
+              {selectedContestType !== "all" &&
+                ` in ${
+                  contestTypes.find((ct) => ct.value === selectedContestType)
+                    ?.label
+                }`}
+              {selectedTiming !== "all" &&
+                ` (${timings.find((t) => t.value === selectedTiming)?.label})`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Chart Area */}
+            <div className="h-[450px] w-full relative">
+              {isLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Loader2 className="h-8 w-8 text-primary mb-4 animate-spin" />
+                  <p className="text-muted-foreground">
+                    Loading problem data...
+                  </p>
+                </div>
+              ) : chartData.length === 0 ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground mb-4" />
+                  <p className="text-center">
+                    No data available for the selected filters.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      setSelectedIndex("all");
+                      setSelectedContestType("all");
+                      setSelectedTiming("all");
+                    }}
+                  >
+                    Reset Filters
+                  </Button>
+                </div>
+              ) : chartType === "bar" ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="var(--border)"
+                    />
+                    <XAxis
+                      dataKey="rating"
+                      label={{
+                        value: "Rating",
+                        position: "insideBottom",
+                        offset: -10,
+                        fill: "var(--muted-foreground)",
+                      }}
+                    />
+                    <YAxis
+                      label={{
+                        value: "Number of Problems",
+                        angle: -90,
+                        position: "insideLeft",
+                        fill: "var(--muted-foreground)",
+                      }}
+                    />
+                    <Tooltip
+                      content={
+                        <CustomTooltip ratingColorMap={ratingColorMap} />
+                      }
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="count"
+                      name="Problem Count"
+                      radius={[4, 4, 0, 0]}
+                      barSize={18}
+                    >
+                      {chartData.map((entry) => (
+                        <Cell
+                          key={`cell-${entry.rating}`}
+                          fill={getRatingColor(entry.rating)}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={ratingGroupData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={130}
+                      fill="#8884d8"
+                      label={({ name, percent }) =>
+                        `${name}: ${(percent * 100).toFixed(1)}%`
+                      }
+                      labelLine={true}
+                    >
+                      {ratingGroupData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [`${value} problems`, name]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Problems
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats.totalProblems.toLocaleString()}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Most Common Rating
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <div
+                className="text-2xl font-bold"
+                style={{ color: getRatingColor(stats.mostCommonRating) }}
+              >
+                {stats.mostCommonRating}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Average Rating
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <div
+                className="text-2xl font-bold"
+                style={{ color: getRatingColor(stats.avgRating) }}
+              >
+                {stats.avgRating}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Median Rating
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <div
+                className="text-2xl font-bold"
+                style={{ color: getRatingColor(stats.medianRating) }}
+              >
+                {stats.medianRating}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Advanced Statistics Section */}
+      {showAdvancedStats && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Index Distribution Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Problem Index Distribution
+                </CardTitle>
+                <CardDescription>
+                  Distribution of problems by contest index (A-N)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  {isLoading ? (
+                    <div className="h-full flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : indexDistributionData.length === 0 ? (
+                    <div className="h-full flex items-center justify-center">
+                      <p className="text-muted-foreground">
+                        No index distribution data available
+                      </p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={indexDistributionData}
+                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="var(--border)"
+                        />
+                        <XAxis dataKey="index" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar
+                          dataKey="count"
+                          name="Problems"
+                          fill="var(--primary)"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Rating Trend Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <span>Rating Trend Analysis</span>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">About Rating Trends</h4>
+                        <p className="text-sm text-muted-foreground">
+                          This chart shows the relative distribution of problem
+                          ratings within their categories. Higher values
+                          indicate more problems of that rating compared to the
+                          average.
+                        </p>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                </CardTitle>
+                <CardDescription>
+                  Normalized trends by problem category
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full flex items-center justify-center">
+                  {isLoading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <TrendingUp className="h-16 w-16 text-muted-foreground mb-4" />
+                      <p className="text-center text-muted-foreground">
+                        Advanced trend analysis available in premium version
+                      </p>
+                      <Button variant="outline" size="sm" className="mt-4">
+                        Upgrade to Premium
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
-};
-
-export default AnalyticsSection;
+}
