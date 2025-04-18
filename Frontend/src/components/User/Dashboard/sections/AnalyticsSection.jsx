@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,20 +28,9 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
-  PieChart,
-  Pie,
   Cell,
 } from "recharts";
-import {
-  Loader2,
-  AlertCircle,
-  BarChartIcon,
-  PieChartIcon,
-  RefreshCcw,
-  Download,
-  Info,
-  TrendingUp,
-} from "lucide-react";
+import { Loader2, AlertCircle, RefreshCcw, Download, Info } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -55,7 +43,7 @@ const CustomTooltip = ({ active, payload, label, ratingColorMap }) => {
     return (
       <div className="bg-card border rounded-md p-3 shadow-lg">
         <p className="font-medium">
-          Rating:{" "}
+          Problem Rating:{" "}
           <span
             style={{ color: ratingColorMap.get(payload[0].payload.rating) }}
           >
@@ -69,7 +57,7 @@ const CustomTooltip = ({ active, payload, label, ratingColorMap }) => {
   return null;
 };
 
-// Color mapping for Codeforces ratings
+// Color mapping for Codeforces problem ratings
 const getRatingColor = (rating) => {
   const ratingNum = parseInt(rating);
   if (ratingNum < 1200) return "#808080"; // Gray
@@ -82,24 +70,7 @@ const getRatingColor = (rating) => {
   return "#E91E63"; // Magenta
 };
 
-// Maps rating to title
-const getRatingTitle = (rating) => {
-  const ratingNum = parseInt(rating);
-  if (ratingNum < 1200) return "Newbie";
-  if (ratingNum < 1400) return "Pupil";
-  if (ratingNum < 1600) return "Specialist";
-  if (ratingNum < 1900) return "Expert";
-  if (ratingNum < 2100) return "Candidate Master";
-  if (ratingNum < 2400) return "Master";
-  if (ratingNum < 2600) return "International Master";
-  if (ratingNum < 3000) return "Grandmaster";
-  return "International Grandmaster";
-};
-
 export default function AnalyticsSection() {
-  // Chart type state
-  const [chartType, setChartType] = useState("bar");
-
   // Filter states
   const [selectedIndex, setSelectedIndex] = useState("all");
   const [selectedContestType, setSelectedContestType] = useState("all");
@@ -111,7 +82,6 @@ export default function AnalyticsSection() {
   const [distributionData, setDistributionData] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
 
   // Filter options
   const indices = useMemo(
@@ -174,6 +144,11 @@ export default function AnalyticsSection() {
     return map;
   }, [distributionData]);
 
+  // Generate a cache key based on the current filters
+  const cacheKey = useMemo(() => {
+    return `problemDistribution_${selectedIndex}_${selectedContestType}_${selectedTiming}`;
+  }, [selectedIndex, selectedContestType, selectedTiming]);
+
   // Fetch problem distribution data
   const fetchProblemDistribution = async (force = false) => {
     setIsLoading(true);
@@ -198,6 +173,11 @@ export default function AnalyticsSection() {
       if (selectedTiming !== "all") {
         params.timing =
           timings.find((t) => t.value === selectedTiming)?.label || "All time";
+      }
+
+      // Add force refresh parameter if needed
+      if (force) {
+        params.forceRefresh = true;
       }
 
       // Fetch data with our custom hook
@@ -228,7 +208,6 @@ export default function AnalyticsSection() {
       .map(([rating, count]) => ({
         rating,
         count,
-        title: getRatingTitle(rating),
       }))
       .sort((a, b) => parseInt(a.rating) - parseInt(b.rating));
   }, [distributionData]);
@@ -241,7 +220,6 @@ export default function AnalyticsSection() {
         mostCommonRating: "-",
         avgRating: 0,
         medianRating: "-",
-        commonTitle: "-",
       };
 
     // Total problems count
@@ -281,56 +259,8 @@ export default function AnalyticsSection() {
       mostCommonRating: mostCommon.rating || "-",
       avgRating,
       medianRating,
-      commonTitle: mostCommon.title || "-",
     };
   }, [chartData]);
-
-  // Calculate rating distribution for pie chart
-  const ratingGroupData = useMemo(() => {
-    if (!chartData.length) return [];
-
-    const ratingGroups = {
-      Newbie: { count: 0, color: "#808080" },
-      Pupil: { count: 0, color: "#4CAF50" },
-      Specialist: { count: 0, color: "#03A9F4" },
-      Expert: { count: 0, color: "#2196F3" },
-      "Candidate Master": { count: 0, color: "#9C27B0" },
-      Master: { count: 0, color: "#FF9800" },
-      "International Master": { count: 0, color: "#F44336" },
-      "Grandmaster+": { count: 0, color: "#E91E63" },
-    };
-
-    chartData.forEach((item) => {
-      const rating = parseInt(item.rating);
-      if (rating < 1200) ratingGroups["Newbie"].count += item.count;
-      else if (rating < 1400) ratingGroups["Pupil"].count += item.count;
-      else if (rating < 1600) ratingGroups["Specialist"].count += item.count;
-      else if (rating < 1900) ratingGroups["Expert"].count += item.count;
-      else if (rating < 2100)
-        ratingGroups["Candidate Master"].count += item.count;
-      else if (rating < 2400) ratingGroups["Master"].count += item.count;
-      else if (rating < 2600)
-        ratingGroups["International Master"].count += item.count;
-      else ratingGroups["Grandmaster+"].count += item.count;
-    });
-
-    return Object.entries(ratingGroups)
-      .filter(([, data]) => data.count > 0)
-      .map(([name, data]) => ({
-        name,
-        value: data.count,
-        color: data.color,
-      }));
-  }, [chartData]);
-
-  // Index distribution data for secondary chart
-  const indexDistributionData = useMemo(() => {
-    if (!distributionData?.indexDistribution) return [];
-
-    return Object.entries(distributionData.indexDistribution)
-      .map(([index, count]) => ({ index, count }))
-      .sort((a, b) => a.index.localeCompare(b.index));
-  }, [distributionData]);
 
   // Effect to fetch data when filters change
   useEffect(() => {
@@ -341,10 +271,10 @@ export default function AnalyticsSection() {
   const downloadCSV = () => {
     if (!chartData.length) return;
 
-    const headers = ["Rating", "Title", "Count"];
+    const headers = ["Rating", "Count"];
     const csvContent = [
       headers.join(","),
-      ...chartData.map((row) => [row.rating, row.title, row.count].join(",")),
+      ...chartData.map((row) => [row.rating, row.count].join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -525,31 +455,6 @@ export default function AnalyticsSection() {
               </div>
             </div>
           </CardContent>
-
-          {/* Chart Selection */}
-          <CardFooter className="border-t pt-4 flex flex-col items-stretch">
-            <h4 className="text-sm font-medium mb-2">Chart Type</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant={chartType === "bar" ? "default" : "outline"}
-                onClick={() => setChartType("bar")}
-                size="sm"
-                className="flex items-center justify-center"
-              >
-                <BarChartIcon className="h-4 w-4 mr-2" />
-                Bar Chart
-              </Button>
-              <Button
-                variant={chartType === "pie" ? "default" : "outline"}
-                onClick={() => setChartType("pie")}
-                size="sm"
-                className="flex items-center justify-center"
-              >
-                <PieChartIcon className="h-4 w-4 mr-2" />
-                Pie Chart
-              </Button>
-            </div>
-          </CardFooter>
         </Card>
 
         {/* Chart Card */}
@@ -557,17 +462,9 @@ export default function AnalyticsSection() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>
-                Rating Distribution
+                Problem Rating Distribution
                 {selectedIndex !== "all" && ` - Index ${selectedIndex}`}
               </span>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAdvancedStats(!showAdvancedStats)}
-              >
-                {showAdvancedStats ? "Hide" : "Show"} Advanced Stats
-              </Button>
             </CardTitle>
             <CardDescription>
               Distribution of problems by difficulty rating
@@ -609,7 +506,7 @@ export default function AnalyticsSection() {
                     Reset Filters
                   </Button>
                 </div>
-              ) : chartType === "bar" ? (
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={chartData}
@@ -623,7 +520,7 @@ export default function AnalyticsSection() {
                     <XAxis
                       dataKey="rating"
                       label={{
-                        value: "Rating",
+                        value: "Problem Rating",
                         position: "insideBottom",
                         offset: -10,
                         fill: "var(--muted-foreground)",
@@ -657,32 +554,6 @@ export default function AnalyticsSection() {
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={ratingGroupData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={130}
-                      fill="#8884d8"
-                      label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(1)}%`
-                      }
-                      labelLine={true}
-                    >
-                      {ratingGroupData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [`${value} problems`, name]}
-                    />
-                    <Legend />
-                  </PieChart>
                 </ResponsiveContainer>
               )}
             </div>
@@ -769,110 +640,6 @@ export default function AnalyticsSection() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Advanced Statistics Section */}
-      {showAdvancedStats && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Index Distribution Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  Problem Index Distribution
-                </CardTitle>
-                <CardDescription>
-                  Distribution of problems by contest index (A-N)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
-                  {isLoading ? (
-                    <div className="h-full flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : indexDistributionData.length === 0 ? (
-                    <div className="h-full flex items-center justify-center">
-                      <p className="text-muted-foreground">
-                        No index distribution data available
-                      </p>
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={indexDistributionData}
-                        margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="var(--border)"
-                        />
-                        <XAxis dataKey="index" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar
-                          dataKey="count"
-                          name="Problems"
-                          fill="var(--primary)"
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Rating Trend Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <span>Rating Trend Analysis</span>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Info className="h-4 w-4" />
-                      </Button>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">About Rating Trends</h4>
-                        <p className="text-sm text-muted-foreground">
-                          This chart shows the relative distribution of problem
-                          ratings within their categories. Higher values
-                          indicate more problems of that rating compared to the
-                          average.
-                        </p>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </CardTitle>
-                <CardDescription>
-                  Normalized trends by problem category
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full flex items-center justify-center">
-                  {isLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <TrendingUp className="h-16 w-16 text-muted-foreground mb-4" />
-                      <p className="text-center text-muted-foreground">
-                        Advanced trend analysis available in premium version
-                      </p>
-                      <Button variant="outline" size="sm" className="mt-4">
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

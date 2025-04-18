@@ -8,10 +8,7 @@ const cache = {
     timestamp: null,
   },
   userDashboards: {}, // Will store data by handle
-  problemDistribution: {
-    data: null,
-    timestamp: null,
-  },
+  problemDistribution: {}, // Will store data by params key
 };
 
 // Cache duration in milliseconds (30 minutes)
@@ -21,7 +18,7 @@ const CACHE_DURATION = 30 * 60 * 1000;
 const pendingRequests = {
   leaderboard: null,
   userDashboards: {},
-  problemDistribution: null,
+  problemDistribution: {}, // Will track requests by params key
 };
 
 /**
@@ -153,16 +150,19 @@ const useCodeforcesData = () => {
     // Check if we have valid cached data
     const now = Date.now();
     if (
-      cache.problemDistribution.data &&
-      cache.problemDistribution.timestamp &&
-      now - cache.problemDistribution.timestamp < CACHE_DURATION
+      cache.problemDistribution[cacheKey]?.data &&
+      cache.problemDistribution[cacheKey]?.timestamp &&
+      now - cache.problemDistribution[cacheKey].timestamp < CACHE_DURATION
     ) {
-      return { data: cache.problemDistribution.data, fromCache: true };
+      return {
+        data: cache.problemDistribution[cacheKey].data,
+        fromCache: true,
+      };
     }
 
     // If there's already a request in flight, wait for that one
-    if (pendingRequests.problemDistribution) {
-      return pendingRequests.problemDistribution;
+    if (pendingRequests.problemDistribution[cacheKey]) {
+      return pendingRequests.problemDistribution[cacheKey];
     }
 
     // Start a new request
@@ -174,7 +174,7 @@ const useCodeforcesData = () => {
         const response = await codeforcesApi.getProblemDistribution(params);
 
         // Update the cache with the new data
-        cache.problemDistribution = {
+        cache.problemDistribution[cacheKey] = {
           data: response.data,
           timestamp: Date.now(),
         };
@@ -187,12 +187,12 @@ const useCodeforcesData = () => {
         });
       } finally {
         setLoading(false);
-        pendingRequests.problemDistribution = null;
+        pendingRequests.problemDistribution[cacheKey] = null;
       }
     });
 
     // Store the promise so other calls can use it
-    pendingRequests.problemDistribution = requestPromise;
+    pendingRequests.problemDistribution[cacheKey] = requestPromise;
 
     return requestPromise;
   }, []);
