@@ -122,7 +122,7 @@ const getUserDashboard = asyncHandler(async (req, res) => {
     const ratingHistory = await codeforcesService.getUserRatingHistory(handle);
 
     // Get submission data for problem counts (fetch latest 500 submissions)
-    const submissions = await codeforcesService.getUserSubmissions(handle, 500);
+    const submissions = await codeforcesService.getUserSubmissions(handle, 5000);
 
     // Process submissions for solved problems
     const uniqueProblemsSolved = new Map();
