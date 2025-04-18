@@ -240,6 +240,35 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
     );
 });
 
+// @desc    Change password
+// @route   PUT /api/v1/users/password
+// @access  Private
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // Find user with password included
+  const user = await User.findById(req.user._id).select("+password");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Verify current password
+  const isPasswordValid = await user.isPasswordCorrect(currentPassword);
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Current password is incorrect");
+  }
+
+  // Update password
+  user.password = newPassword;
+  await user.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
 // @desc    Refresh access token
 // @route   POST /api/v1/users/refresh-token
 // @access  Public

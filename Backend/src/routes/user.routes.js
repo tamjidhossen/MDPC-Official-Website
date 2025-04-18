@@ -8,12 +8,14 @@ import {
   refreshAccessToken,
   getAllUsers,
   updateUserRole,
+  changePassword,
 } from "../controllers/user.controller.js";
 import { verifyJWT, isAdmin } from "../middlewares/auth.middleware.js";
 import {
   registerValidator,
   loginValidator,
   updateProfileValidator,
+  changePasswordValidator,
 } from "../middlewares/validators/user.validator.js";
 import { upload } from "../utils/fileUpload.js";
 
@@ -34,6 +36,7 @@ router.put(
   updateProfileValidator,
   updateUserProfile
 );
+router.put("/password", verifyJWT, changePasswordValidator, changePassword);
 
 // Admin routes
 router.get("/", verifyJWT, isAdmin, getAllUsers);
