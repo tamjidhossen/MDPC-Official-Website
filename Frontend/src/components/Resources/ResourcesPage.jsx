@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,15 +12,43 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Calendar, Clock, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Search,
+  Calendar,
+  Clock,
+  ArrowRight,
+  Loader2,
+  FileDown,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { blogApi, resourceApi } from "@/services/api";
 import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ResourcesPage = () => {
+  const location = useLocation();
+
   // State for Resources
   const [resourceSearchQuery, setResourceSearchQuery] = useState("");
   const [resources, setResources] = useState([]);
+  const [resourceCategories, setResourceCategories] = useState([]);
+  const [resourceLevels, setResourceLevels] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState("");
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resourcesError, setResourcesError] = useState(null);
+  const [resourcesPagination, setResourcesPagination] = useState({
+    page: 1,
+    limit: 12,
+    totalResources: 0,
+    totalPages: 0,
+  });
 
   // State for Blogs
   const [blogs, setBlogs] = useState([]);
@@ -35,6 +63,67 @@ const ResourcesPage = () => {
     totalBlogs: 0,
     totalPages: 0,
   });
+
+  // Determine initial active tab based on URL state
+  const [activeTab, setActiveTab] = useState(
+    location.state?.activeTab === "blogs" ? "blogs" : "resources"
+  );
+
+  // Fetch resources from API
+  useEffect(() => {
+    const fetchResources = async () => {
+      setResourcesLoading(true);
+      setResourcesError(null);
+
+      try {
+        const params = {
+          page: resourcesPagination.page,
+          limit: resourcesPagination.limit,
+          search: resourceSearchQuery || undefined,
+          category: selectedCategory || undefined,
+          level: selectedLevel ? selectedLevel.toLowerCase() : undefined,
+        };
+
+        const response = await resourceApi.getAll(params);
+
+        if (response.data?.resources) {
+          setResources(response.data.resources);
+
+          // Set categories and levels for filters
+          if (response.data.metadata) {
+            if (response.data.metadata.categories) {
+              setResourceCategories(response.data.metadata.categories);
+            }
+
+            if (response.data.metadata.levels) {
+              setResourceLevels(response.data.metadata.levels);
+            }
+          }
+
+          // Set pagination data
+          if (response.data.pagination) {
+            setResourcesPagination(response.data.pagination);
+          }
+        } else {
+          setResources([]);
+        }
+      } catch (err) {
+        console.error("Error fetching resources:", err);
+        setResourcesError("Failed to load resources. Please try again later.");
+        setResources([]);
+      } finally {
+        setResourcesLoading(false);
+      }
+    };
+
+    fetchResources();
+  }, [
+    resourceSearchQuery,
+    selectedCategory,
+    selectedLevel,
+    resourcesPagination.page,
+    resourcesPagination.limit,
+  ]);
 
   // Fetch blogs from API
   useEffect(() => {
@@ -118,76 +207,12 @@ const ResourcesPage = () => {
       : plainText;
   };
 
-  // Mock data for resources
-  const mockResources = [
-    {
-      id: 1,
-      title: "Getting Started with CP",
-      description:
-        "A comprehensive guide for beginners in competitive programming",
-      level: "Beginner",
-      tags: ["Guide", "Introduction"],
-      link: "/resources/getting-started",
-    },
-    {
-      id: 2,
-      title: "Data Structures Fundamentals",
-      description:
-        "Essential data structures every competitive programmer should know",
-      level: "Beginner",
-      tags: ["Data Structures", "Fundamentals"],
-      link: "/resources/data-structures",
-    },
-    {
-      id: 3,
-      title: "Algorithm Analysis",
-      description:
-        "Learn how to analyze time and space complexity of algorithms",
-      level: "Beginner",
-      tags: ["Algorithms", "Analysis"],
-      link: "/resources/algorithm-analysis",
-    },
-    {
-      id: 4,
-      title: "Dynamic Programming",
-      description:
-        "Master the art of solving problems using dynamic programming",
-      level: "Intermediate",
-      tags: ["Algorithms", "DP"],
-      link: "/resources/dynamic-programming",
-    },
-    {
-      id: 5,
-      title: "Competitive Programming Roadmap",
-      description:
-        "A structured roadmap for your CP journey from beginner to expert",
-      level: "All Levels",
-      tags: ["Guide", "Roadmap"],
-      link: "/resources/cp-roadmap",
-    },
-    {
-      id: 6,
-      title: "String Algorithms",
-      description: "Comprehensive guide on string algorithms and techniques",
-      level: "Intermediate",
-      tags: ["Algorithms", "Strings"],
-      link: "/resources/string-algorithms",
-    },
-  ];
-
-  // Filter resources based on search query
-  const filteredResources = mockResources.filter(
-    (resource) =>
-      resource.title
-        .toLowerCase()
-        .includes(resourceSearchQuery.toLowerCase()) ||
-      resource.description
-        .toLowerCase()
-        .includes(resourceSearchQuery.toLowerCase()) ||
-      resource.tags.some((tag) =>
-        tag.toLowerCase().includes(resourceSearchQuery.toLowerCase())
-      )
-  );
+  // Handle resource search form submission
+  const handleResourceSearch = (e) => {
+    e.preventDefault();
+    // Reset pagination to page 1 when searching
+    setResourcesPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   // FAQs about resources
   const faqs = [
@@ -226,7 +251,12 @@ const ResourcesPage = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="resources" className="mb-10">
+      <Tabs
+        defaultValue={activeTab}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="mb-10"
+      >
         <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
           <TabsTrigger value="resources">Learning Resources</TabsTrigger>
           <TabsTrigger value="blogs">Community Blogs</TabsTrigger>
@@ -234,56 +264,252 @@ const ResourcesPage = () => {
 
         {/* Resources Tab */}
         <TabsContent value="resources" className="mt-6">
-          {/* Search Bar for Resources */}
-          <div className="flex w-full max-w-sm items-center space-x-2 mb-10 mx-auto">
-            <Input
-              type="text"
-              placeholder="Search resources..."
-              value={resourceSearchQuery}
-              onChange={(e) => setResourceSearchQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" size="icon">
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Search Bar and Filters for Resources */}
+          <form onSubmit={handleResourceSearch} className="mb-10">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex w-full md:w-auto items-center space-x-2">
+                <Input
+                  type="text"
+                  placeholder="Search resources..."
+                  value={resourceSearchQuery}
+                  onChange={(e) => setResourceSearchQuery(e.target.value)}
+                  className="w-full md:w-60"
+                />
+                <Button type="submit" size="icon">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap w-full md:w-auto gap-4">
+                {resourceCategories.length > 0 && (
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={setSelectedCategory}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Categories</SelectItem>
+                      {resourceCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {resourceLevels.length > 0 && (
+                  <Select
+                    value={selectedLevel}
+                    onValueChange={setSelectedLevel}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Levels</SelectItem>
+                      {resourceLevels.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          </form>
+
+          {/* Loading State for Resources */}
+          {resourcesLoading && (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading resources...</span>
+            </div>
+          )}
+
+          {/* Error State for Resources */}
+          {resourcesError && !resourcesLoading && (
+            <div className="text-center py-20">
+              <p className="text-destructive">{resourcesError}</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setResourceSearchQuery("");
+                  setSelectedCategory("");
+                  setSelectedLevel("");
+                  setResourcesPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+
+          {/* Empty State for Resources */}
+          {!resourcesLoading && !resourcesError && resources.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground">
+                No resources found matching your criteria.
+              </p>
+              {(resourceSearchQuery || selectedCategory || selectedLevel) && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => {
+                    setResourceSearchQuery("");
+                    setSelectedCategory("");
+                    setSelectedLevel("");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Resources Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
-            {filteredResources.map((resource) => (
-              <Card key={resource.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="outline">{resource.level}</Badge>
-                    <div className="flex flex-wrap gap-1 justify-end">
-                      {resource.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
+          {!resourcesLoading && !resourcesError && resources.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
+              {resources.map((resource) => (
+                <Card key={resource._id} className="flex flex-col">
+                  <CardHeader>
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant="outline">{resource.level}</Badge>
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {resource.tags &&
+                          resource.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                  <CardTitle className="text-xl">{resource.title}</CardTitle>
-                  <CardDescription>{resource.description}</CardDescription>
-                </CardHeader>
-                <CardFooter className="mt-auto pt-4">
-                  <Link to={resource.link} className="w-full">
-                    <Button className="w-full">
-                      <span>View Resource</span>
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                    <CardTitle className="text-xl">{resource.title}</CardTitle>
+                    <CardDescription>
+                      {getExcerpt(resource.content, 100)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <div className="text-sm text-muted-foreground mb-4">
+                      <span className="font-medium">Category: </span>
+                      {resource.category}
+                    </div>
+
+                    {/* External links if any */}
+                    {resource.externalLinks &&
+                      resource.externalLinks.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">
+                            External Resources:
+                          </p>
+                          <ul className="text-sm space-y-1">
+                            {resource.externalLinks
+                              .slice(0, 2)
+                              .map((link, idx) => (
+                                <li key={idx}>
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-primary hover:underline inline-flex items-center"
+                                  >
+                                    {link.title}
+                                    <ArrowRight className="h-3 w-3 ml-1" />
+                                  </a>
+                                </li>
+                              ))}
+                            {resource.externalLinks.length > 2 && (
+                              <li className="text-muted-foreground">
+                                +{resource.externalLinks.length - 2} more links
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                  </CardContent>
+                  <CardFooter className="mt-auto space-y-2 flex-col">
+                    <Link to={`/resources/${resource._id}`} className="w-full">
+                      <Button className="w-full">
+                        <span>View Resource</span>
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+
+                    {/* Download file button if available */}
+                    {resource.file && (
+                      <a
+                        href={`${import.meta.env.VITE_API_URL}${resource.file}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full"
+                      >
+                        <Button variant="outline" className="w-full">
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Download Material
+                        </Button>
+                      </a>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Resources Pagination */}
+          {!resourcesLoading &&
+            !resourcesError &&
+            resourcesPagination.totalPages > 1 && (
+              <div className="flex justify-center mt-10">
+                <div className="join">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="join-item"
+                    disabled={resourcesPagination.page === 1}
+                    onClick={() =>
+                      setResourcesPagination((prev) => ({
+                        ...prev,
+                        page: prev.page - 1,
+                      }))
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <span className="join-item px-4 flex items-center bg-muted">
+                    Page {resourcesPagination.page} of{" "}
+                    {resourcesPagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="join-item"
+                    disabled={
+                      resourcesPagination.page ===
+                      resourcesPagination.totalPages
+                    }
+                    onClick={() =>
+                      setResourcesPagination((prev) => ({
+                        ...prev,
+                        page: prev.page + 1,
+                      }))
+                    }
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
 
           {/* FAQ Section */}
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-3xl mt-16">
             <h2 className="text-2xl font-bold text-center mb-8">
               Frequently Asked Questions
             </h2>

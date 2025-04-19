@@ -12,6 +12,7 @@ import DashboardPage from "./components/User/Dashboard/DashboardPage";
 import DynamicProgrammingResource from "./components/Resources/DynamicProgrammingResource";
 import CPRoadmapResource from "./components/Resources/CPRoadmapResource";
 import BlogDetailPage from "./components/Blogs/BlogDetailPage";
+import ResourceDetailPage from "./components/Resources/ResourceDetailPage";
 import JoinPage from "./components/Join/JoinPage";
 import ErrorDisplay from "./components/ErrorPages/ErrorDisplay"; // Import the error display component
 
@@ -51,6 +52,7 @@ const AppWithRoutes = () => {
           />
           <Route path="resources/cp-roadmap" element={<CPRoadmapResource />} />
           <Route path="resources/blog/:id" element={<BlogDetailPage />} />
+          <Route path="resources/:id" element={<ResourceDetailPage />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
