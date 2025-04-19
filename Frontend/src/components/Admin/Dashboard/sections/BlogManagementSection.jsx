@@ -18,21 +18,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import {
-  Check,
-  X,
-  Eye,
-  Edit,
-  Trash,
-  Search,
-  Plus,
-  Loader2,
-} from "lucide-react";
+import { Check, X, Eye, Edit, Trash, Search, Loader2 } from "lucide-react";
 import api from "@/services/api"; // Assuming api service is set up
 import { useToast } from "@/hooks/use-toast"; // Assuming toast hook is set up
 import { format } from "date-fns"; // For date formatting
@@ -53,13 +42,6 @@ const BlogManagementSection = () => {
   const [error, setError] = useState(null);
   const [selectedBlog, setSelectedBlog] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [newBlogData, setNewBlogData] = useState({
-    title: "",
-    category: "",
-    content: "",
-    tags: "", // Keep tags as a comma-separated string for input
-  });
 
   const fetchAllBlogs = useCallback(async () => {
     setLoading((prev) => ({ ...prev, fetching: true }));
@@ -140,66 +122,6 @@ const BlogManagementSection = () => {
     } finally {
       setLoading((prev) => ({ ...prev, action: null }));
     }
-  };
-
-  const handleUploadSubmit = async (e) => {
-    e.preventDefault();
-    setLoading((prev) => ({ ...prev, action: "uploading" })); // Indicate upload action
-    try {
-      // Parse tags string into an array, filtering out empty strings
-      const tagsArray = newBlogData.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== "");
-
-      const payload = {
-        title: newBlogData.title,
-        content: newBlogData.content,
-        category: newBlogData.category,
-        tags: tagsArray, // Send as array
-      };
-
-      await api.post("/blogs", payload);
-      toast({
-        title: "Success",
-        description: "Blog uploaded successfully and is pending review.",
-      });
-      setUploadDialogOpen(false);
-      setNewBlogData({ title: "", category: "", content: "", tags: "" });
-      fetchAllBlogs(); // Refetch all blogs
-    } catch (err) {
-      console.error("Error uploading blog:", err);
-      let errorMsg = "Failed to upload blog."; // Default message
-
-      // Check for structured validation errors
-      if (
-        err.response?.data?.errors &&
-        Array.isArray(err.response.data.errors) &&
-        err.response.data.errors.length > 0
-      ) {
-        const firstError = err.response.data.errors[0];
-        errorMsg = `${firstError.field}: ${firstError.message}`;
-      } else if (err.response?.data?.message) {
-        // Use the general message if no structured errors
-        errorMsg = err.response.data.message;
-      }
-
-      toast({
-        title: "Upload Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading((prev) => ({ ...prev, action: null }));
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewBlogData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   const handleTabChange = (value) => {
@@ -376,110 +298,11 @@ const BlogManagementSection = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Blog Management</h2>
-          <p className="text-muted-foreground">
-            Manage blog posts, review submissions, and upload new content.
-          </p>
-        </div>
-        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={loading.action === "uploading"}>
-              {loading.action === "uploading" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="mr-2 h-4 w-4" />
-              )}{" "}
-              Upload New Blog
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[625px]">
-            <DialogHeader>
-              <DialogTitle>Upload New Blog</DialogTitle>
-              <DialogDescription>
-                Create a new blog post. It will be submitted for review.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleUploadSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="title" className="text-right">
-                    Title
-                  </Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    value={newBlogData.title}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                    required
-                    disabled={loading.action === "uploading"}
-                  />
-                </div>
-                {/* Author is determined by backend based on JWT */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Category
-                  </Label>
-                  <Input
-                    id="category"
-                    name="category"
-                    value={newBlogData.category}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                    required
-                    disabled={loading.action === "uploading"}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="tags" className="text-right">
-                    Tags
-                  </Label>
-                  <Input
-                    id="tags"
-                    name="tags"
-                    value={newBlogData.tags}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                    placeholder="Comma-separated, e.g., algorithms, dp, graphs"
-                    disabled={loading.action === "uploading"}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label htmlFor="content" className="text-right pt-2">
-                    Content
-                  </Label>
-                  <Textarea
-                    id="content"
-                    name="content"
-                    value={newBlogData.content}
-                    onChange={handleInputChange}
-                    className="col-span-3 min-h-[200px]"
-                    required
-                    disabled={loading.action === "uploading"}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setUploadDialogOpen(false)}
-                  disabled={loading.action === "uploading"}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading.action === "uploading"}>
-                  {loading.action === "uploading" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}{" "}
-                  Upload Blog
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Blog Management</h2>
+        <p className="text-muted-foreground">
+          Manage blog posts and review submissions.
+        </p>
       </div>
 
       <div className="flex items-center space-x-2">
