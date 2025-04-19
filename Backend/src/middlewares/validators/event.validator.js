@@ -32,36 +32,6 @@ export const createEventValidator = [
     .isString()
     .withMessage("Description must be a string"),
 
-  body("eventType")
-    .notEmpty()
-    .withMessage("Event type is required")
-    .isIn(Object.values(EventTypes))
-    .withMessage(
-      `Event type must be one of: ${Object.values(EventTypes).join(", ")}`
-    ),
-
-  body("startDate")
-    .notEmpty()
-    .withMessage("Start date is required")
-    .isISO8601()
-    .withMessage("Start date must be a valid date format"),
-
-  body("endDate")
-    .optional()
-    .isISO8601()
-    .withMessage("End date must be a valid date format")
-    .custom((value, { req }) => {
-      if (new Date(value) <= new Date(req.body.startDate)) {
-        throw new Error("End date must be after start date");
-      }
-      return true;
-    }),
-
-  body("location")
-    .notEmpty()
-    .withMessage("Location is required")
-    .isString()
-    .withMessage("Location must be a string"),
 
   body("capacity")
     .optional()
@@ -96,32 +66,6 @@ export const updateEventValidator = [
     .optional()
     .isString()
     .withMessage("Description must be a string"),
-
-  body("eventType")
-    .optional()
-    .isIn(Object.values(EventTypes))
-    .withMessage(
-      `Event type must be one of: ${Object.values(EventTypes).join(", ")}`
-    ),
-
-  body("startDate")
-    .optional()
-    .isISO8601()
-    .withMessage("Start date must be a valid date format"),
-
-  body("endDate")
-    .optional()
-    .isISO8601()
-    .withMessage("End date must be a valid date format")
-    .custom((value, { req }) => {
-      if (
-        req.body.startDate &&
-        new Date(value) <= new Date(req.body.startDate)
-      ) {
-        throw new Error("End date must be after start date");
-      }
-      return true;
-    }),
 
   body("location")
     .optional()

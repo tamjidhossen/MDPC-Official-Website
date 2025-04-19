@@ -23,31 +23,21 @@ export const createEvent = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!title || !description || !date || !time || !venue) {
+  if (!title || !description) {
     throw new ApiError(
       400,
-      "All required fields must be provided: title, description, date, time, venue"
+      "All required fields must be provided: title, description"
     );
   }
 
   // Check for empty strings after trimming
   if (
     title.trim() === "" ||
-    description.trim() === "" ||
-    venue.trim() === "" ||
-    time.trim() === ""
+    description.trim() === ""
   ) {
     throw new ApiError(
       400,
-      "Title, description, venue, and time cannot be empty"
-    );
-  }
-
-  // Validate event type if provided
-  if (type && !Object.values(EventTypes).includes(type)) {
-    throw new ApiError(
-      400,
-      `Event type must be one of: ${Object.values(EventTypes).join(", ")}`
+      "Title, description, cannot be empty"
     );
   }
 
