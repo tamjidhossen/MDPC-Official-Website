@@ -8,6 +8,7 @@ import EventManagementSection from "./sections/EventManagementSection";
 import ContestManagementSection from "./sections/ContestManagementSection";
 import RegistrationSettingsSection from "./sections/RegistrationSettingsSection";
 import AdminManagementSection from "./sections/AdminManagementSection";
+import ResourceManagementSection from "./sections/ResourceManagementSection"; // Import ResourceManagementSection
 import { Toaster } from "@/components/ui/toaster";
 
 const DashboardPage = () => {
@@ -26,6 +27,8 @@ const DashboardPage = () => {
         return <EventManagementSection />;
       case "contests":
         return <ContestManagementSection />;
+      case "resources": // Add case for resources
+        return <ResourceManagementSection />;
       case "registration":
         return <RegistrationSettingsSection />;
       case "admins":

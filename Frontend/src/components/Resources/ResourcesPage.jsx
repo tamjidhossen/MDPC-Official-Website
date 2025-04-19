@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,19 +12,114 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Calendar, Clock, ArrowRight } from "lucide-react";
+import { Search, Calendar, Clock, ArrowRight, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { blogApi, resourceApi } from "@/services/api";
+import { format } from "date-fns";
 
 const ResourcesPage = () => {
   // State for Resources
   const [resourceSearchQuery, setResourceSearchQuery] = useState("");
+  const [resources, setResources] = useState([]);
 
   // State for Blogs
+  const [blogs, setBlogs] = useState([]);
   const [blogSearchQuery, setBlogSearchQuery] = useState("");
   const [category, setCategory] = useState("all");
+  const [categories, setCategories] = useState(["all"]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalBlogs: 0,
+    totalPages: 0,
+  });
+
+  // Fetch blogs from API
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await blogApi.getAll({
+          page: pagination.page,
+          limit: pagination.limit,
+          status: "approved", // Only fetch approved blogs
+          search: blogSearchQuery || undefined,
+          category: category !== "all" ? category : undefined,
+        });
+
+        if (response.data && response.data.blogs) {
+          setBlogs(response.data.blogs);
+
+          if (response.data.pagination) {
+            setPagination(response.data.pagination);
+          }
+
+          // Extract unique categories from blogs
+          if (response.data.blogs.length > 0) {
+            const blogCategories = new Set(
+              response.data.blogs.map((blog) => blog.category)
+            );
+            setCategories(["all", ...blogCategories]);
+          }
+        } else {
+          setBlogs([]);
+        }
+      } catch (err) {
+        console.error("Error fetching blogs:", err);
+        setError("Failed to load blogs. Please try again later.");
+        setBlogs([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBlogs();
+  }, [blogSearchQuery, category, pagination.page, pagination.limit]);
+
+  // Calculate estimated read time based on content length
+  const calculateReadTime = (content) => {
+    if (!content) return "2 min read";
+    // Average reading speed: 200 words per minute
+    const wordCount = content.replace(/<[^>]*>/g, "").split(/\s+/).length;
+    const readTime = Math.max(1, Math.ceil(wordCount / 200));
+    return `${readTime} min read`;
+  };
+
+  // Generate author initials from name
+  const getAuthorInitials = (name) => {
+    if (!name) return "NA";
+    return name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "Recent";
+    try {
+      return format(new Date(dateString), "MMM d, yyyy");
+    } catch (e) {
+      return "Recent";
+    }
+  };
+
+  // Get excerpt from HTML content
+  const getExcerpt = (content, length = 150) => {
+    if (!content) return "No content available";
+    const plainText = content.replace(/<[^>]*>/g, "");
+    return plainText.length > length
+      ? `${plainText.substring(0, length)}...`
+      : plainText;
+  };
 
   // Mock data for resources
-  const resources = [
+  const mockResources = [
     {
       id: 1,
       title: "Getting Started with CP",
@@ -80,78 +175,8 @@ const ResourcesPage = () => {
     },
   ];
 
-  // Mock data for blogs
-  const blogs = [
-    {
-      id: 1,
-      title: "How I Solved the Knapsack Problem: A Step-by-Step Guide",
-      excerpt:
-        "A detailed explanation of the Knapsack Problem, its variations, and my approach to solving it efficiently...",
-      author: {
-        name: "Tamim Ahmed",
-        avatar: "https://github.com/shadcn.png",
-        initials: "TA",
-      },
-      date: "May 15, 2024",
-      readTime: "8 min read",
-      categories: ["Algorithms", "Dynamic Programming"],
-      slug: "knapsack-problem-guide",
-    },
-    {
-      id: 2,
-      title: "My Journey to ICPC World Finals: Tips and Insights",
-      excerpt:
-        "Sharing my three-year journey to qualify for the ICPC World Finals, including practice strategies and contest experiences...",
-      author: {
-        name: "Sarah Rahman",
-        avatar: "",
-        initials: "SR",
-      },
-      date: "May 10, 2024",
-      readTime: "12 min read",
-      categories: ["Experience", "Competitive Programming"],
-      slug: "journey-to-icpc",
-    },
-    {
-      id: 3,
-      title: "Understanding Graph Algorithms in Competitive Programming",
-      excerpt:
-        "An in-depth look at essential graph algorithms, with implementation examples and problem-solving techniques...",
-      author: {
-        name: "Karim Hassan",
-        avatar: "",
-        initials: "KH",
-      },
-      date: "May 5, 2024",
-      readTime: "10 min read",
-      categories: ["Algorithms", "Graphs"],
-      slug: "graph-algorithms",
-    },
-    {
-      id: 4,
-      title: "Common Mistakes in Programming Contests and How to Avoid Them",
-      excerpt:
-        "Learn from the mistakes I've made and observed in various programming contests to improve your performance...",
-      author: {
-        name: "Rahim Uddin",
-        avatar: "",
-        initials: "RU",
-      },
-      date: "April 22, 2024",
-      readTime: "7 min read",
-      categories: ["Tips", "Contest Strategy"],
-      slug: "common-mistakes",
-    },
-  ];
-
-  // Extract unique categories for blogs
-  const categories = [
-    "all",
-    ...new Set(blogs.flatMap((blog) => blog.categories)),
-  ];
-
   // Filter resources based on search query
-  const filteredResources = resources.filter(
+  const filteredResources = mockResources.filter(
     (resource) =>
       resource.title
         .toLowerCase()
@@ -162,14 +187,6 @@ const ResourcesPage = () => {
       resource.tags.some((tag) =>
         tag.toLowerCase().includes(resourceSearchQuery.toLowerCase())
       )
-  );
-
-  // Filter blogs based on search query and category
-  const filteredBlogs = blogs.filter(
-    (blog) =>
-      (blog.title.toLowerCase().includes(blogSearchQuery.toLowerCase()) ||
-        blog.excerpt.toLowerCase().includes(blogSearchQuery.toLowerCase())) &&
-      (category === "all" || blog.categories.includes(category))
   );
 
   // FAQs about resources
@@ -311,64 +328,153 @@ const ResourcesPage = () => {
                   onClick={() => setCategory(cat)}
                   className="capitalize"
                 >
-                  {cat}
+                  {cat === "all" ? "All" : cat}
                 </Button>
               ))}
             </div>
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading blogs...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className="text-center py-20">
+              <p className="text-destructive">{error}</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setBlogSearchQuery("");
+                  setCategory("all");
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && !error && blogs.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground">
+                No blogs found matching your criteria.
+              </p>
+              {(blogSearchQuery || category !== "all") && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => {
+                    setBlogSearchQuery("");
+                    setCategory("all");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Blogs Grid */}
-          <div className="grid gap-8 md:grid-cols-2">
-            {filteredBlogs.map((blog) => (
-              <Card key={blog.id} className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-xl mb-2">
-                    <Link
-                      to={`/resources/blogs/${blog.slug}`}
-                      className="hover:text-primary transition-colors"
-                    >
-                      {blog.title}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {blog.excerpt}
-                  </CardDescription>
-                </CardHeader>
+          {!isLoading && !error && blogs.length > 0 && (
+            <div className="grid gap-8 md:grid-cols-2">
+              {blogs.map((blog) => (
+                <Card key={blog._id} className="overflow-hidden">
+                  <CardHeader>
+                    <CardTitle className="text-xl mb-2">
+                      <Link
+                        to={`/resources/blog/${blog._id}`}
+                        className="hover:text-primary transition-colors"
+                      >
+                        {blog.title}
+                      </Link>
+                    </CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {getExcerpt(blog.content)}
+                    </CardDescription>
+                  </CardHeader>
 
-                <CardContent>
-                  <div className="flex items-center gap-2 mb-4">
-                    {blog.categories.map((cat) => (
-                      <Badge key={cat} variant="outline">
-                        {cat}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
+                  <CardContent>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge variant="secondary">{blog.category}</Badge>
+                      {blog.tags &&
+                        blog.tags.length > 0 &&
+                        blog.tags.slice(0, 2).map((tag) => (
+                          <Badge key={tag} variant="outline">
+                            {tag}
+                          </Badge>
+                        ))}
+                    </div>
+                  </CardContent>
 
-                <CardFooter className="border-t bg-muted/40 px-6 py-4">
-                  <div className="flex justify-between items-center w-full">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={blog.author.avatar}
-                          alt={blog.author.name}
-                        />
-                        <AvatarFallback>{blog.author.initials}</AvatarFallback>
-                      </Avatar>
-                      <div className="text-sm font-medium">
-                        {blog.author.name}
+                  <CardFooter className="border-t bg-muted/40 px-6 py-4">
+                    <div className="flex justify-between items-center w-full">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={blog.author?.avatar || ""}
+                            alt={blog.author?.name || "Author"}
+                          />
+                          <AvatarFallback>
+                            {getAuthorInitials(blog.author?.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-sm font-medium">
+                          {blog.author?.name || "Anonymous"}
+                        </div>
+                      </div>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {formatDate(blog.publishedDate || blog.createdAt)}
+                        <span className="mx-2">•</span>
+                        <Clock className="h-3 w-3 mr-1" />
+                        {calculateReadTime(blog.content)}
                       </div>
                     </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 mr-1" /> {blog.date}
-                      <span className="mx-2">•</span>
-                      <Clock className="h-3 w-3 mr-1" /> {blog.readTime}
-                    </div>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!isLoading && !error && pagination.totalPages > 1 && (
+            <div className="flex justify-center mt-10">
+              <div className="join">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="join-item"
+                  disabled={pagination.page === 1}
+                  onClick={() =>
+                    setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+                  }
+                >
+                  Previous
+                </Button>
+                <span className="join-item px-4 flex items-center bg-muted">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="join-item"
+                  disabled={pagination.page === pagination.totalPages}
+                  onClick={() =>
+                    setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

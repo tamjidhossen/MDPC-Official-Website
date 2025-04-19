@@ -214,6 +214,21 @@ export const blogApi = {
   },
 };
 
+// Resource API Service
+export const resourceApi = {
+  getAll: (params = {}) => apiClient.get("/resources", { params }),
+  getById: (id) => apiClient.get(`/resources/${id}`),
+  create: (formData) =>
+    apiClient.post("/resources", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  update: (id, formData) =>
+    apiClient.put(`/resources/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  delete: (id) => apiClient.delete(`/resources/${id}`),
+};
+
 // Event API endpoints
 export const eventApi = {
   // Get all events with filters
@@ -311,51 +326,6 @@ export const contestApi = {
       `/contests/${contestId}/results`,
       resultsData
     );
-    return response.data;
-  },
-};
-
-// Resource API endpoints
-export const resourceApi = {
-  // Get all resources with filters
-  getAll: async (params = {}) => {
-    const response = await apiClient.get("/resources", { params });
-    return response.data;
-  },
-
-  // Get a specific resource by ID
-  getById: async (resourceId) => {
-    const response = await apiClient.get(`/resources/${resourceId}`);
-    return response.data;
-  },
-
-  // Create a new resource (admin only)
-  create: async (resourceData) => {
-    const response = await apiClient.post("/resources", resourceData, {
-      headers: {
-        "Content-Type": "multipart/form-data", // For file uploads
-      },
-    });
-    return response.data;
-  },
-
-  // Update an existing resource (admin only)
-  update: async (resourceId, resourceData) => {
-    const response = await apiClient.put(
-      `/resources/${resourceId}`,
-      resourceData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data", // For file uploads
-        },
-      }
-    );
-    return response.data;
-  },
-
-  // Delete a resource (admin only)
-  delete: async (resourceId) => {
-    const response = await apiClient.delete(`/resources/${resourceId}`);
     return response.data;
   },
 };
