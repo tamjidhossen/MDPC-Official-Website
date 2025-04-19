@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,7 +29,6 @@ import {
   Eye,
   Edit,
   Trash,
-  FileUp,
   Search,
   Plus,
   Loader2,
@@ -62,35 +61,38 @@ const BlogManagementSection = () => {
     tags: "", // Keep tags as a comma-separated string for input
   });
 
-  const fetchBlogs = useCallback(
-    async (status) => {
-      setLoading((prev) => ({ ...prev, fetching: true }));
-      setError(null);
-      try {
-        const response = await api.get(`/blogs?status=${status}&limit=100`); // Fetch more blogs, consider pagination later
-        setBlogs((prev) => ({
-          ...prev,
-          [status]: response.data.data.blogs || [],
-        }));
-      } catch (err) {
-        console.error(`Error fetching ${status} blogs:`, err);
-        setError(`Failed to fetch ${status} blogs. Please try again.`);
-        toast({
-          title: "Error",
-          description: `Failed to fetch ${status} blogs.`,
-          variant: "destructive",
-        });
-        setBlogs((prev) => ({ ...prev, [status]: [] })); // Clear on error
-      } finally {
-        setLoading((prev) => ({ ...prev, fetching: false }));
-      }
-    },
-    [toast]
-  );
+  const fetchAllBlogs = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, fetching: true }));
+    setError(null);
+    try {
+      const response = await api.get(`/blogs?limit=100`); // Fetch all blogs with a high limit
+
+      // Categorize blogs by status
+      const allBlogs = response.data.data.blogs || [];
+      const categorizedBlogs = {
+        pending: allBlogs.filter((blog) => blog.status === "pending"),
+        approved: allBlogs.filter((blog) => blog.status === "approved"),
+        rejected: allBlogs.filter((blog) => blog.status === "rejected"),
+      };
+
+      setBlogs(categorizedBlogs);
+    } catch (err) {
+      console.error(`Error fetching blogs:`, err);
+      setError(`Failed to fetch blogs. Please try again.`);
+      toast({
+        title: "Error",
+        description: `Failed to fetch blogs.`,
+        variant: "destructive",
+      });
+      setBlogs({ pending: [], approved: [], rejected: [] }); // Clear on error
+    } finally {
+      setLoading((prev) => ({ ...prev, fetching: false }));
+    }
+  }, [toast]);
 
   useEffect(() => {
-    fetchBlogs(activeTab);
-  }, [activeTab, fetchBlogs]);
+    fetchAllBlogs();
+  }, [fetchAllBlogs]);
 
   const updateStatus = async (blogId, newStatus) => {
     setLoading((prev) => ({ ...prev, action: blogId }));
@@ -100,11 +102,10 @@ const BlogManagementSection = () => {
         title: "Success",
         description: `Blog ${newStatus} successfully.`,
       });
-      // Refetch relevant tabs
-      fetchBlogs(activeTab); // Refetch current tab
-      if (activeTab !== newStatus) {
-        fetchBlogs(newStatus); // Refetch target tab if different
-      }
+
+      // Refetch all blogs data after status update
+      fetchAllBlogs();
+
       if (viewDialogOpen) setViewDialogOpen(false); // Close dialog if open
     } catch (err) {
       console.error(`Error updating blog status to ${newStatus}:`, err);
@@ -128,7 +129,7 @@ const BlogManagementSection = () => {
         title: "Success",
         description: "Blog deleted successfully.",
       });
-      fetchBlogs(activeTab); // Refetch current tab
+      fetchAllBlogs(); // Refetch all blogs data
     } catch (err) {
       console.error("Error deleting blog:", err);
       toast({
@@ -165,7 +166,7 @@ const BlogManagementSection = () => {
       });
       setUploadDialogOpen(false);
       setNewBlogData({ title: "", category: "", content: "", tags: "" });
-      fetchBlogs("pending"); // Refresh pending blogs list
+      fetchAllBlogs(); // Refetch all blogs
     } catch (err) {
       console.error("Error uploading blog:", err);
       let errorMsg = "Failed to upload blog."; // Default message
