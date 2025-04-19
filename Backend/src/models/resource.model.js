@@ -38,6 +38,10 @@ const resourceSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    file: {
+      type: String, // Store the path to the uploaded file
+      required: false,
+    },
   },
   { timestamps: true }
 );

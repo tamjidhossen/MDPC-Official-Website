@@ -1,5 +1,5 @@
 import { body, param, validationResult } from "express-validator";
-import { ResourceCategories, ResourceLevels } from "../../constants.js";
+import { ResourceLevels } from "../../constants.js";
 
 // Reuse validate middleware
 export const validate = (req, res, next) => {
@@ -26,40 +26,74 @@ export const createResourceValidator = [
     .withMessage("Title must be a string")
     .trim(),
 
-  body("description")
+  body("content")
     .notEmpty()
-    .withMessage("Description is required")
+    .withMessage("Content is required")
     .isString()
-    .withMessage("Description must be a string"),
+    .withMessage("Content must be a string"),
 
   body("category")
     .notEmpty()
     .withMessage("Category is required")
-    .isIn(Object.values(ResourceCategories))
-    .withMessage(
-      `Category must be one of: ${Object.values(ResourceCategories).join(", ")}`
-    ),
+    .isString()
+    .withMessage("Category must be a string")
+    .trim(),
 
   body("level")
     .notEmpty()
     .withMessage("Level is required")
-    .isIn(Object.values(ResourceLevels))
+    .isIn(Object.values(ResourceLevels).map((level) => level.toLowerCase()))
     .withMessage(
-      `Level must be one of: ${Object.values(ResourceLevels).join(", ")}`
+      `Level must be one of: ${Object.values(ResourceLevels)
+        .map((level) => level.toLowerCase())
+        .join(", ")}`
     ),
 
-  body("resourceUrl")
+  body("externalLinks")
     .optional()
-    .isURL()
-    .withMessage("Resource URL must be a valid URL"),
+    .custom((value) => {
+      try {
+        const links = typeof value === "string" ? JSON.parse(value) : value;
+        if (!Array.isArray(links)) {
+          throw new Error("External links must be an array");
+        }
+        links.forEach((link) => {
+          if (typeof link !== "object" || !link.title || !link.url) {
+            throw new Error("Each external link must have a title and url");
+          }
+          if (typeof link.title !== "string" || typeof link.url !== "string") {
+            throw new Error("External link title and url must be strings");
+          }
+          try {
+            new URL(link.url);
+          } catch (_) {
+            throw new Error(`Invalid URL format for link: ${link.title}`);
+          }
+        });
+        return true;
+      } catch (e) {
+        throw new Error(e.message || "Invalid format for externalLinks");
+      }
+    }),
 
-  body("tags").optional().isArray().withMessage("Tags must be an array"),
-
-  body("tags.*")
+  body("tags")
     .optional()
-    .isString()
-    .withMessage("Each tag must be a string")
-    .trim(),
+    .custom((value) => {
+      try {
+        const tags = typeof value === "string" ? JSON.parse(value) : value;
+        if (!Array.isArray(tags)) {
+          throw new Error("Tags must be an array");
+        }
+        tags.forEach((tag) => {
+          if (typeof tag !== "string") {
+            throw new Error("Each tag must be a string");
+          }
+        });
+        return true;
+      } catch (e) {
+        throw new Error(e.message || "Invalid format for tags");
+      }
+    }),
 
   validate,
 ];
@@ -74,37 +108,68 @@ export const updateResourceValidator = [
     .withMessage("Title must be a string")
     .trim(),
 
-  body("description")
-    .optional()
-    .isString()
-    .withMessage("Description must be a string"),
+  body("content").optional().isString().withMessage("Content must be a string"),
 
   body("category")
     .optional()
-    .isIn(Object.values(ResourceCategories))
-    .withMessage(
-      `Category must be one of: ${Object.values(ResourceCategories).join(", ")}`
-    ),
+    .isString()
+    .withMessage("Category must be a string")
+    .trim(),
 
   body("level")
     .optional()
-    .isIn(Object.values(ResourceLevels))
+    .isIn(Object.values(ResourceLevels).map((level) => level.toLowerCase()))
     .withMessage(
-      `Level must be one of: ${Object.values(ResourceLevels).join(", ")}`
+      `Level must be one of: ${Object.values(ResourceLevels)
+        .map((level) => level.toLowerCase())
+        .join(", ")}`
     ),
 
-  body("resourceUrl")
+  body("externalLinks")
     .optional()
-    .isURL()
-    .withMessage("Resource URL must be a valid URL"),
+    .custom((value) => {
+      try {
+        const links = typeof value === "string" ? JSON.parse(value) : value;
+        if (!Array.isArray(links)) {
+          throw new Error("External links must be an array");
+        }
+        links.forEach((link) => {
+          if (typeof link !== "object" || !link.title || !link.url) {
+            throw new Error("Each external link must have a title and url");
+          }
+          if (typeof link.title !== "string" || typeof link.url !== "string") {
+            throw new Error("External link title and url must be strings");
+          }
+          try {
+            new URL(link.url);
+          } catch (_) {
+            throw new Error(`Invalid URL format for link: ${link.title}`);
+          }
+        });
+        return true;
+      } catch (e) {
+        throw new Error(e.message || "Invalid format for externalLinks");
+      }
+    }),
 
-  body("tags").optional().isArray().withMessage("Tags must be an array"),
-
-  body("tags.*")
+  body("tags")
     .optional()
-    .isString()
-    .withMessage("Each tag must be a string")
-    .trim(),
+    .custom((value) => {
+      try {
+        const tags = typeof value === "string" ? JSON.parse(value) : value;
+        if (!Array.isArray(tags)) {
+          throw new Error("Tags must be an array");
+        }
+        tags.forEach((tag) => {
+          if (typeof tag !== "string") {
+            throw new Error("Each tag must be a string");
+          }
+        });
+        return true;
+      } catch (e) {
+        throw new Error(e.message || "Invalid format for tags");
+      }
+    }),
 
   validate,
 ];
