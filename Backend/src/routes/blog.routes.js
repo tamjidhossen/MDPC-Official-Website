@@ -24,7 +24,7 @@ import {
 const router = Router();
 
 // Public routes
-router.get("/", getAllBlogs);
+router.get("/", verifyJWT, getAllBlogs); // Add verifyJWT here
 
 // Protected routes for current user - this must come before /:id
 router.get("/my-blogs", verifyJWT, getMyBlogs);
