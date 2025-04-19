@@ -12,6 +12,7 @@ import DashboardPage from "./components/User/Dashboard/DashboardPage";
 import DynamicProgrammingResource from "./components/Resources/DynamicProgrammingResource";
 import CPRoadmapResource from "./components/Resources/CPRoadmapResource";
 import JoinPage from "./components/Join/JoinPage";
+import ErrorDisplay from "./components/ErrorPages/ErrorDisplay"; // Import the error display component
 
 // Admin imports
 import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
@@ -36,7 +37,9 @@ const AppWithRoutes = () => {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-        <Route path="/" element={<Layout />}>
+        <Route path="/" element={<Layout />} errorElement={<ErrorDisplay />}>
+          {" "}
+          {/* Add errorElement here */}
           <Route path="" element={<HomePage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="contests" element={<ContestsPage />} />
@@ -59,7 +62,9 @@ const AppWithRoutes = () => {
           />
           <Route path="join" element={<JoinPage />} />
         </Route>
-        <Route path="/admin">
+        <Route path="/admin" errorElement={<ErrorDisplay />}>
+          {" "}
+          {/* Add errorElement here */}
           {/* Redirect from admin login to main login */}
           <Route path="login" element={<Navigate to="/login" replace />} />
           <Route

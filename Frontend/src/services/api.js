@@ -216,17 +216,148 @@ export const blogApi = {
 
 // Event API endpoints
 export const eventApi = {
-  // Add event-related API calls here
+  // Get all events with filters
+  getAll: async (params = {}) => {
+    const response = await apiClient.get("/events", { params });
+    return response.data;
+  },
+
+  // Get a specific event by ID
+  getById: async (eventId) => {
+    const response = await apiClient.get(`/events/${eventId}`);
+    return response.data;
+  },
+
+  // Create a new event (admin only)
+  create: async (eventData) => {
+    const response = await apiClient.post("/events", eventData, {
+      headers: {
+        "Content-Type": "multipart/form-data", // For file uploads
+      },
+    });
+    return response.data;
+  },
+
+  // Update an existing event (admin only)
+  update: async (eventId, eventData) => {
+    const response = await apiClient.put(`/events/${eventId}`, eventData, {
+      headers: {
+        "Content-Type": "multipart/form-data", // For file uploads
+      },
+    });
+    return response.data;
+  },
+
+  // Delete an event (admin only)
+  delete: async (eventId) => {
+    const response = await apiClient.delete(`/events/${eventId}`);
+    return response.data;
+  },
+
+  // Register for an event
+  register: async (eventId) => {
+    const response = await apiClient.post(`/events/${eventId}/register`);
+    return response.data;
+  },
+
+  // Cancel event registration
+  cancelRegistration: async (eventId) => {
+    const response = await apiClient.delete(`/events/${eventId}/register`);
+    return response.data;
+  },
 };
 
 // Contest API endpoints
 export const contestApi = {
-  // Add contest-related API calls here
+  // Get all contests with filters
+  getAll: async (params = {}) => {
+    const response = await apiClient.get("/contests", { params });
+    return response.data;
+  },
+
+  // Get a specific contest by ID
+  getById: async (contestId) => {
+    const response = await apiClient.get(`/contests/${contestId}`);
+    return response.data;
+  },
+
+  // Create a new contest (admin only)
+  create: async (contestData) => {
+    const response = await apiClient.post("/contests", contestData);
+    return response.data;
+  },
+
+  // Update an existing contest (admin only)
+  update: async (contestId, contestData) => {
+    const response = await apiClient.put(`/contests/${contestId}`, contestData);
+    return response.data;
+  },
+
+  // Delete a contest (admin only)
+  delete: async (contestId) => {
+    const response = await apiClient.delete(`/contests/${contestId}`);
+    return response.data;
+  },
+
+  // Register for a contest
+  register: async (contestId) => {
+    const response = await apiClient.post(`/contests/${contestId}/register`);
+    return response.data;
+  },
+
+  // Add contest results (admin only)
+  addResults: async (contestId, resultsData) => {
+    const response = await apiClient.post(
+      `/contests/${contestId}/results`,
+      resultsData
+    );
+    return response.data;
+  },
 };
 
 // Resource API endpoints
 export const resourceApi = {
-  // Add resource-related API calls here
+  // Get all resources with filters
+  getAll: async (params = {}) => {
+    const response = await apiClient.get("/resources", { params });
+    return response.data;
+  },
+
+  // Get a specific resource by ID
+  getById: async (resourceId) => {
+    const response = await apiClient.get(`/resources/${resourceId}`);
+    return response.data;
+  },
+
+  // Create a new resource (admin only)
+  create: async (resourceData) => {
+    const response = await apiClient.post("/resources", resourceData, {
+      headers: {
+        "Content-Type": "multipart/form-data", // For file uploads
+      },
+    });
+    return response.data;
+  },
+
+  // Update an existing resource (admin only)
+  update: async (resourceId, resourceData) => {
+    const response = await apiClient.put(
+      `/resources/${resourceId}`,
+      resourceData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data", // For file uploads
+        },
+      }
+    );
+    return response.data;
+  },
+
+  // Delete a resource (admin only)
+  delete: async (resourceId) => {
+    const response = await apiClient.delete(`/resources/${resourceId}`);
+    return response.data;
+  },
 };
 
 export default apiClient;

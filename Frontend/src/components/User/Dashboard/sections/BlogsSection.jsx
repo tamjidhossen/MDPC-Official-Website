@@ -193,7 +193,6 @@ const BlogsSection = () => {
     // The content will be set via useEffect when currentBlog changes
   };
 
-
   // Handle publish blog
   const handlePublishBlog = async () => {
     // Validate form
@@ -251,9 +250,24 @@ const BlogsSection = () => {
       fetchUserBlogs();
     } catch (error) {
       console.error("Error publishing blog:", error);
+      let errorMsg = "Failed to submit blog. Please try again."; // Default message
+
+      // Check for structured validation errors
+      if (
+        error.response?.data?.errors &&
+        Array.isArray(error.response.data.errors) &&
+        error.response.data.errors.length > 0
+      ) {
+        const firstError = error.response.data.errors[0];
+        errorMsg = `${firstError.field}: ${firstError.message}`;
+      } else if (error.response?.data?.message) {
+        // Use the general message if no structured errors
+        errorMsg = error.response.data.message;
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to submit blog. Please try again.",
+        title: "Submission Error",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
