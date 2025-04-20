@@ -167,7 +167,6 @@ export const userApi = {
 
 // Blog API endpoints
 export const blogApi = {
-  
   getAllApproved: async () => {
     console.log("called getAllApproved");
     const response = await apiClient.get("/blogs/all-approved");
@@ -334,6 +333,41 @@ export const contestApi = {
       `/contests/${contestId}/results`,
       resultsData
     );
+    return response.data;
+  },
+};
+
+// Member API endpoints
+export const memberApi = {
+  // Get all members with filters (admin only)
+  getAll: async (params = {}) => {
+    const response = await apiClient.get("/members", { params });
+    return response.data;
+  },
+
+  // Get member by ID (admin only)
+  getById: async (id) => {
+    const response = await apiClient.get(`/members/${id}`);
+    return response.data;
+  },
+
+  // Apply for membership (public)
+  apply: async (memberData) => {
+    const response = await apiClient.post("/members/apply", memberData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  // Update member status (approve/reject) (admin only)
+  updateStatus: async (id, status) => {
+    const response = await apiClient.patch(`/members/${id}/status`, { status });
+    return response.data;
+  },
+
+  // Delete a member (admin only)
+  delete: async (id) => {
+    const response = await apiClient.delete(`/members/${id}`);
     return response.data;
   },
 };

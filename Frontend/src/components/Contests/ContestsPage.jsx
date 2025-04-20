@@ -190,7 +190,7 @@ const ContestsPage = () => {
                           </div>
                         </div>
                       </CardContent>
-                      <CardFooter>
+                      {/* <CardFooter>
                         {contest.registrationStatus ? (
                           <Button
                             className="w-full"
@@ -204,7 +204,7 @@ const ContestsPage = () => {
                             Registration Closed
                           </Button>
                         )}
-                      </CardFooter>
+                      </CardFooter> */}
                     </Card>
                   ))}
                 </div>

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Check, Upload } from "lucide-react";
+import { Check, Upload, Loader2 } from "lucide-react";
 
 import {
   Form,
@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Separator } from "../ui/separator";
+import { memberApi } from "@/services/api";
 
 // Form schema using Zod for validation
 const formSchema = z.object({
@@ -61,6 +62,7 @@ const formSchema = z.object({
 const JoinPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -92,22 +94,51 @@ const JoinPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      console.log("Form Data:", data);
+      setIsSubmitting(true);
 
-      // Here you would typically send the data to your backend API
-      // For now, we're just simulating a successful submission
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("email", data.email);
+      formData.append("phone", data.phone);
+      formData.append("session", data.session);
+      formData.append("roll", data.roll);
+      formData.append("department", data.department);
 
-      // Simulate API call with a timeout
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Add programming handles as a nested object
+      const programmingHandles = {
+        codeforces: data.codeforces,
+        vjudge: data.vjudge,
+      };
+      formData.append("programmingHandles", JSON.stringify(programmingHandles));
 
-      // Show success toast
-      toast.success("Registration submitted successfully!");
+      // Add the photo
+      if (data.photo && data.photo[0]) {
+        formData.append("photo", data.photo[0]);
+      }
 
-      // Show thank you message
-      setIsSubmitted(true);
+      // Submit to the API
+      const response = await memberApi.apply(formData);
+
+      if (response.success) {
+        // Show success toast
+        toast.success("Membership application submitted successfully!");
+
+        // Show thank you message
+        setIsSubmitted(true);
+      } else {
+        toast.error(response.message || "Failed to submit application");
+      }
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Failed to submit registration. Please try again.");
+
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Failed to submit registration. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -241,6 +272,12 @@ const JoinPage = () => {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="CSE">CSE</SelectItem>
+                              <SelectItem value="EEE">EEE</SelectItem>
+                              <SelectItem value="Civil">Civil</SelectItem>
+                              <SelectItem value="Architecture">
+                                Architecture
+                              </SelectItem>
+                              <SelectItem value="Textile">Textile</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -366,8 +403,20 @@ const JoinPage = () => {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
-                  Submit Registration
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Registration"
+                  )}
                 </Button>
               </form>
             </Form>

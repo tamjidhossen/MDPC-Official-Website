@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,225 +29,190 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, UserPlus, Edit, Trash, Eye } from "lucide-react";
+import { Search, UserPlus, Edit, Trash, Eye, Loader2 } from "lucide-react";
+import { memberApi } from "@/services/api";
+import { toast } from "sonner";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const MemberDatabaseSection = () => {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalMembers: 0,
+    totalPages: 0,
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [sessionFilter, setSessionFilter] = useState("all");
   const [selectedMember, setSelectedMember] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
-  const [newMemberData, setNewMemberData] = useState({
-    name: "",
-    email: "",
-    studentId: "",
-    department: "",
-    session: "",
-    phone: "",
-    joinDate: new Date().toISOString().split("T")[0],
-    status: "pending",
-  });
+  const [sessions, setSessions] = useState(["all"]);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Dummy data for members
-  const dummyMembers = {
-    active: [
-      {
-        id: 1,
-        name: "John Smith",
-        email: "john.smith@example.com",
-        studentId: "2019331001",
-        department: "Computer Science",
-        session: "2019-2020",
-        phone: "+880 1712-345678",
-        joinDate: "2022-02-15",
-        status: "active",
-        role: "Member",
-      },
-      {
-        id: 2,
-        name: "Sarah Johnson",
-        email: "sarah.johnson@example.com",
-        studentId: "2020331042",
-        department: "Computer Science",
-        session: "2020-2021",
-        phone: "+880 1745-678901",
-        joinDate: "2022-03-10",
-        status: "active",
-        role: "Executive",
-      },
-      {
-        id: 3,
-        name: "Ahmed Khan",
-        email: "ahmed.khan@example.com",
-        studentId: "2021331067",
-        department: "Electrical Engineering",
-        session: "2021-2022",
-        phone: "+880 1856-234567",
-        joinDate: "2022-08-22",
-        status: "active",
-        role: "Member",
-      },
-      {
-        id: 4,
-        name: "Mina Patel",
-        email: "mina.patel@example.com",
-        studentId: "2019331089",
-        department: "Computer Science",
-        session: "2019-2020",
-        phone: "+880 1632-123456",
-        joinDate: "2023-01-05",
-        status: "active",
-        role: "Member",
-      },
-      {
-        id: 5,
-        name: "David Lee",
-        email: "david.lee@example.com",
-        studentId: "2022331012",
-        department: "Physics",
-        session: "2022-2023",
-        phone: "+880 1789-876543",
-        joinDate: "2023-03-20",
-        status: "active",
-        role: "Member",
-      },
-    ],
-    pending: [
-      {
-        id: 6,
-        name: "Priya Sharma",
-        email: "priya.sharma@example.com",
-        studentId: "2023331054",
-        department: "Computer Science",
-        session: "2023-2024",
-        phone: "+880 1701-456789",
-        joinDate: "2025-04-08",
-        status: "pending",
-        role: "Applicant",
-      },
-      {
-        id: 7,
-        name: "Michael Wong",
-        email: "michael.wong@example.com",
-        studentId: "2023331077",
-        department: "Mathematics",
-        session: "2023-2024",
-        phone: "+880 1956-765432",
-        joinDate: "2025-04-09",
-        status: "pending",
-        role: "Applicant",
-      },
-    ],
+  // Fetch members data from API
+  const fetchMembers = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Prepare query parameters
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        status: activeTab, // API expects "active" or "pending"
+      };
+
+      // Add session filter if not "all"
+      if (sessionFilter !== "all") {
+        params.session = sessionFilter;
+      }
+
+      // Add search term if available
+      if (searchTerm.trim()) {
+        params.search = searchTerm;
+      }
+
+      const response = await memberApi.getAll(params);
+
+      if (response.success) {
+        setMembers(response.data.members || []);
+        setPagination(
+          response.data.pagination || {
+            page: 1,
+            limit: 10,
+            totalMembers: 0,
+            totalPages: 0,
+          }
+        );
+
+        // Extract unique sessions from members for filtering
+        if (response.data.members && response.data.members.length > 0) {
+          const uniqueSessions = [
+            "all",
+            ...new Set(response.data.members.map((member) => member.session)),
+          ];
+          setSessions(uniqueSessions);
+        }
+      } else {
+        setError("Failed to fetch members");
+        toast.error("Failed to fetch members");
+      }
+    } catch (err) {
+      console.error("Error fetching members:", err);
+      setError("Failed to fetch members. Please try again later.");
+      toast.error("Failed to fetch members");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Available sessions for filtering
-  const sessions = [
-    "all",
-    "2019-2020",
-    "2020-2021",
-    "2021-2022",
-    "2022-2023",
-    "2023-2024",
-  ];
+  // Fetch members on component mount and when filter/tab/pagination changes
+  useEffect(() => {
+    fetchMembers();
+  }, [activeTab, sessionFilter, pagination.page, pagination.limit]);
 
-  // Filter members based on search term and session
-  const filteredMembers = dummyMembers[activeTab].filter((member) => {
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.studentId.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesSession =
-      sessionFilter === "all" || member.session === sessionFilter;
-
-    return matchesSearch && matchesSession;
-  });
-
+  // Handle search
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchMembers();
+  };
+
+  // Handle session filter change
   const handleSessionFilterChange = (value) => {
     setSessionFilter(value);
   };
 
-  const handleCreateMember = (e) => {
-    e.preventDefault();
-    // Here would be API call to create the member
-    console.log("Creating new member:", newMemberData);
-    setCreateDialogOpen(false);
-    setNewMemberData({
-      name: "",
-      email: "",
-      studentId: "",
-      department: "",
-      session: "",
-      phone: "",
-      joinDate: new Date().toISOString().split("T")[0],
-      status: "pending",
-    });
-    // Update UI accordingly
+  // View member details
+  const handleViewMember = async (memberId) => {
+    setLoading(true);
+    try {
+      const response = await memberApi.getById(memberId);
+      if (response.success) {
+        setSelectedMember(response.data.member);
+        setViewDialogOpen(true);
+      } else {
+        toast.error("Failed to fetch member details");
+      }
+    } catch (err) {
+      console.error("Error fetching member details:", err);
+      toast.error("Failed to fetch member details");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateMember = (e) => {
-    e.preventDefault();
-    // Here would be API call to update the member
-    console.log("Updating member:", selectedMember);
-    setEditDialogOpen(false);
-    // Update UI accordingly
+  // Update member status (approve/reject)
+  const handleUpdateStatus = async (memberId, status) => {
+    setActionLoading(true);
+    try {
+      const response = await memberApi.updateStatus(memberId, status);
+      if (response.success) {
+        toast.success(
+          `Member ${
+            status === "active" ? "approved" : "status updated"
+          } successfully`
+        );
+        setViewDialogOpen(false);
+        setEditDialogOpen(false);
+        fetchMembers();
+      } else {
+        toast.error("Failed to update member status");
+      }
+    } catch (err) {
+      console.error("Error updating member status:", err);
+      toast.error("Failed to update member status");
+    } finally {
+      setActionLoading(false);
+      setConfirmDialogOpen(false);
+    }
   };
 
-  const handleDeleteMember = (memberId) => {
-    // Here would be API call to delete the member
-    console.log(`Deleting member with ID: ${memberId}`);
-    // Update UI accordingly
+  // Delete member
+  const handleDeleteMember = async (memberId) => {
+    setActionLoading(true);
+    try {
+      const response = await memberApi.delete(memberId);
+      if (response.success) {
+        toast.success("Member deleted successfully");
+        setDeleteDialogOpen(false);
+        fetchMembers();
+      } else {
+        toast.error("Failed to delete member");
+      }
+    } catch (err) {
+      console.error("Error deleting member:", err);
+      toast.error("Failed to delete member");
+    } finally {
+      setActionLoading(false);
+      setConfirmDialogOpen(false);
+    }
   };
 
-  const handleApproveMember = (memberId) => {
-    // Here would be API call to approve the member
-    console.log(`Approving member with ID: ${memberId}`);
-    // Update UI accordingly
-  };
-
-  const handleViewMember = (member) => {
-    setSelectedMember(member);
-    setViewDialogOpen(true);
-  };
-
-  const handleEditMember = (member) => {
-    setSelectedMember({ ...member });
-    setEditDialogOpen(true);
-  };
-
-  const handleMemberInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewMemberData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSelectedMemberChange = (e) => {
-    const { name, value } = e.target;
-    setSelectedMember((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSelectedMemberStatusChange = (status) => {
-    setSelectedMember((prev) => ({
-      ...prev,
-      status,
-    }));
-  };
-
+  // Handle tab change
   const handleTabChange = (value) => {
     setActiveTab(value);
-    setSearchTerm("");
-    setSessionFilter("all");
+    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "NA";
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -260,170 +225,31 @@ const MemberDatabaseSection = () => {
             details.
           </p>
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" /> Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Member</DialogTitle>
-              <DialogDescription>
-                Create a new member account or application.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateMember}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={newMemberData.name}
-                    onChange={handleMemberInputChange}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={newMemberData.email}
-                    onChange={handleMemberInputChange}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="studentId" className="text-right">
-                    Student ID
-                  </Label>
-                  <Input
-                    id="studentId"
-                    name="studentId"
-                    value={newMemberData.studentId}
-                    onChange={handleMemberInputChange}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="department" className="text-right">
-                    Department
-                  </Label>
-                  <Input
-                    id="department"
-                    name="department"
-                    value={newMemberData.department}
-                    onChange={handleMemberInputChange}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="session" className="text-right">
-                    Session
-                  </Label>
-                  <Select
-                    name="session"
-                    value={newMemberData.session}
-                    onValueChange={(value) =>
-                      setNewMemberData({ ...newMemberData, session: value })
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select session" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sessions
-                        .filter((s) => s !== "all")
-                        .map((session) => (
-                          <SelectItem key={session} value={session}>
-                            {session}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    value={newMemberData.phone}
-                    onChange={handleMemberInputChange}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status
-                  </Label>
-                  <Select
-                    name="status"
-                    value={newMemberData.status}
-                    onValueChange={(value) =>
-                      setNewMemberData({ ...newMemberData, status: value })
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCreateDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Create Member</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
         <TabsList>
-          <TabsTrigger value="active">
-            Active Members{" "}
-            <Badge className="ml-2">{dummyMembers.active.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending Applications{" "}
-            <Badge className="ml-2">{dummyMembers.pending.length}</Badge>
-          </TabsTrigger>
+          <TabsTrigger value="active">Active Members</TabsTrigger>
+          <TabsTrigger value="pending">Pending Applications</TabsTrigger>
         </TabsList>
       </Tabs>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-1 items-center space-x-2">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-1 items-center space-x-2"
+        >
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email or ID..."
+            placeholder="Search by name, email or roll..."
             value={searchTerm}
             onChange={handleSearch}
             className="max-w-sm"
           />
-        </div>
+          <Button type="submit" variant="secondary" size="sm">
+            Search
+          </Button>
+        </form>
         <div className="flex items-center space-x-2">
           <Label htmlFor="session-filter">Session Filter:</Label>
           <Select
@@ -453,13 +279,24 @@ const MemberDatabaseSection = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredMembers.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-destructive">
+              <p>{error}</p>
+              <Button onClick={fetchMembers} variant="outline" className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          ) : members.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Student ID</TableHead>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Roll</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead>Session</TableHead>
                     <TableHead>Status</TableHead>
@@ -467,12 +304,33 @@ const MemberDatabaseSection = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.id}>
+                  {members.map((member) => (
+                    <TableRow key={member._id}>
                       <TableCell className="font-medium">
-                        {member.name}
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            {member.photo ? (
+                              <AvatarImage
+                                src={
+                                  import.meta.env.VITE_API_URL + member.photo
+                                }
+                                alt={member.name}
+                              />
+                            ) : (
+                              <AvatarFallback>
+                                {getInitials(member.name)}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{member.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {member.email}
+                            </p>
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell>{member.studentId}</TableCell>
+                      <TableCell>{member.roll}</TableCell>
                       <TableCell>{member.department}</TableCell>
                       <TableCell>{member.session}</TableCell>
                       <TableCell>
@@ -487,31 +345,29 @@ const MemberDatabaseSection = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleViewMember(member)}
+                            onClick={() => handleViewMember(member._id)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {member.status === "pending" ? (
+                          {member.status === "pending" && (
                             <Button
                               size="sm"
                               variant="default"
-                              onClick={() => handleApproveMember(member.id)}
+                              onClick={() => {
+                                setSelectedMember(member);
+                                setConfirmDialogOpen(true);
+                              }}
                             >
                               Approve
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditMember(member)}
-                            >
-                              <Edit className="h-4 w-4" />
                             </Button>
                           )}
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDeleteMember(member.id)}
+                            onClick={() => {
+                              setSelectedMember(member);
+                              setDeleteDialogOpen(true);
+                            }}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>
@@ -526,6 +382,35 @@ const MemberDatabaseSection = () => {
             <p className="text-center py-6 text-muted-foreground">
               No members found matching your search criteria.
             </p>
+          )}
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.page === 1}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+                }
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.page === pagination.totalPages}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+                }
+              >
+                Next
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -542,6 +427,22 @@ const MemberDatabaseSection = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="flex justify-center">
+                  <Avatar className="h-24 w-24">
+                    {selectedMember.photo ? (
+                      <AvatarImage
+                        src={
+                          import.meta.env.VITE_API_URL + selectedMember.photo
+                        }
+                        alt={selectedMember.name}
+                      />
+                    ) : (
+                      <AvatarFallback className="text-2xl">
+                        {getInitials(selectedMember.name)}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <div className="text-sm font-medium text-right">Name:</div>
                   <div className="col-span-3">{selectedMember.name}</div>
@@ -552,9 +453,9 @@ const MemberDatabaseSection = () => {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <div className="text-sm font-medium text-right">
-                    Student ID:
+                    Roll Number:
                   </div>
-                  <div className="col-span-3">{selectedMember.studentId}</div>
+                  <div className="col-span-3">{selectedMember.roll}</div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <div className="text-sm font-medium text-right">
@@ -570,12 +471,16 @@ const MemberDatabaseSection = () => {
                   <div className="text-sm font-medium text-right">Phone:</div>
                   <div className="col-span-3">{selectedMember.phone}</div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-sm font-medium text-right">
-                    Join Date:
+                {selectedMember.joinDate && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-sm font-medium text-right">
+                      Join Date:
+                    </div>
+                    <div className="col-span-3">
+                      {new Date(selectedMember.joinDate).toLocaleDateString()}
+                    </div>
                   </div>
-                  <div className="col-span-3">{selectedMember.joinDate}</div>
-                </div>
+                )}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <div className="text-sm font-medium text-right">Status:</div>
                   <div className="col-span-3">
@@ -586,24 +491,53 @@ const MemberDatabaseSection = () => {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-sm font-medium text-right">Role:</div>
-                  <div className="col-span-3">{selectedMember.role}</div>
-                </div>
+                {selectedMember.programmingHandles && (
+                  <>
+                    {selectedMember.programmingHandles.codeforces && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <div className="text-sm font-medium text-right">
+                          Codeforces:
+                        </div>
+                        <div className="col-span-3">
+                          {selectedMember.programmingHandles.codeforces}
+                        </div>
+                      </div>
+                    )}
+                    {selectedMember.programmingHandles.vjudge && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <div className="text-sm font-medium text-right">
+                          Vjudge:
+                        </div>
+                        <div className="col-span-3">
+                          {selectedMember.programmingHandles.vjudge}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <DialogFooter>
                 {selectedMember.status === "pending" && (
                   <Button
-                    onClick={() => handleApproveMember(selectedMember.id)}
+                    onClick={() => {
+                      setViewDialogOpen(false);
+                      setSelectedMember(selectedMember);
+                      setConfirmDialogOpen(true);
+                    }}
                   >
                     Approve Member
                   </Button>
                 )}
-                {selectedMember.status === "active" && (
-                  <Button onClick={() => handleEditMember(selectedMember)}>
-                    Edit Member
-                  </Button>
-                )}
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setViewDialogOpen(false);
+                    setSelectedMember(selectedMember);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  Delete Member
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => setViewDialogOpen(false)}
@@ -616,103 +550,74 @@ const MemberDatabaseSection = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Member Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          {selectedMember && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Edit Member</DialogTitle>
-                <DialogDescription>
-                  Update member account information.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdateMember}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-name" className="text-right">
-                      Name
-                    </Label>
-                    <Input
-                      id="edit-name"
-                      name="name"
-                      value={selectedMember.name}
-                      onChange={handleSelectedMemberChange}
-                      className="col-span-3"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-email" className="text-right">
-                      Email
-                    </Label>
-                    <Input
-                      id="edit-email"
-                      name="email"
-                      type="email"
-                      value={selectedMember.email}
-                      onChange={handleSelectedMemberChange}
-                      className="col-span-3"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-department" className="text-right">
-                      Department
-                    </Label>
-                    <Input
-                      id="edit-department"
-                      name="department"
-                      value={selectedMember.department}
-                      onChange={handleSelectedMemberChange}
-                      className="col-span-3"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-phone" className="text-right">
-                      Phone
-                    </Label>
-                    <Input
-                      id="edit-phone"
-                      name="phone"
-                      value={selectedMember.phone}
-                      onChange={handleSelectedMemberChange}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-status" className="text-right">
-                      Status
-                    </Label>
-                    <Select
-                      name="status"
-                      value={selectedMember.status}
-                      onValueChange={handleSelectedMemberStatusChange}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Save Changes</Button>
-                </DialogFooter>
-              </form>
-            </>
-          )}
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Member Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this member? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDeleteMember(selectedMember?._id)}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Member"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval Confirmation Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Member Approval</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to approve this member application?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => handleUpdateStatus(selectedMember?._id, "active")}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : (
+                "Approve Member"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
