@@ -43,10 +43,12 @@ const RegistrationSettingsSection = () => {
   const toggleRegistration = (value) => {
     setIsRegistrationOpen(value);
     toast({
-      title: value ? "Registration Opened" : "Registration Closed",
+      title: value
+        ? "Registration Status Updated"
+        : "Registration Status Updated",
       description: value
-        ? "Club membership registration is now open for applicants."
-        : "Club membership registration has been closed.",
+        ? "Registration has been opened."
+        : "Registration has been closed.",
     });
   };
 
@@ -66,19 +68,18 @@ const RegistrationSettingsSection = () => {
   };
 
   const handleSaveSettings = () => {
-    // Here would be API call to save registration settings
+    // This would be where an API call would happen in the future
     const settings = {
       isRegistrationOpen,
       registrationDate,
       registrationMessage,
       registrationDetails,
     };
-    console.log("Saving registration settings:", settings);
+    console.log("Registration settings that would be saved:", settings);
 
-    // Success toast
     toast({
       title: "Settings Saved",
-      description: "Registration settings have been updated successfully.",
+      description: "Registration settings have been saved successfully.",
     });
   };
 
@@ -89,7 +90,7 @@ const RegistrationSettingsSection = () => {
           Registration Settings
         </h2>
         <p className="text-muted-foreground">
-          Manage club member registration settings and recruitment process.
+          Manage club member registration settings.
         </p>
       </div>
 
@@ -125,10 +126,6 @@ const RegistrationSettingsSection = () => {
               placeholder="Message to display on the Join page"
               className="min-h-[80px]"
             />
-            <p className="text-xs text-muted-foreground">
-              This message will be displayed on the Join page to inform visitors
-              about the registration status.
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -187,53 +184,18 @@ const RegistrationSettingsSection = () => {
               </Popover>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Registration Period Status</Label>
-            <div className="flex items-center space-x-2 rounded-md border p-4">
-              <div
-                className={`h-2 w-2 rounded-full ${
-                  isRegistrationOpen ? "bg-green-500" : "bg-red-500"
-                }`}
-              />
-              <div>
-                <p className="text-sm font-medium">
-                  {isRegistrationOpen
-                    ? "Registration is Open"
-                    : "Registration is Closed"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {isRegistrationOpen
-                    ? `Open from ${format(
-                        registrationDate.start,
-                        "PPP"
-                      )} to ${format(registrationDate.end, "PPP")}`
-                    : "Registration is currently disabled"}
-                </p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Registration Details</CardTitle>
+          <CardTitle>Basic Settings</CardTitle>
           <CardDescription>
-            Configure the details for the membership registration.
+            Configure basic details for the membership registration.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="registration-title">Registration Title</Label>
-              <Input
-                id="registration-title"
-                name="title"
-                value={registrationDetails.title}
-                onChange={handleInputChange}
-                placeholder="e.g., MDPC Membership Registration"
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="registration-fee">Registration Fee (BDT)</Label>
               <Input
@@ -245,31 +207,20 @@ const RegistrationSettingsSection = () => {
                 placeholder="e.g., 500"
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="max-members">Maximum Members</Label>
-            <Input
-              id="max-members"
-              name="maxMembers"
-              type="number"
-              value={registrationDetails.maxMembers}
-              onChange={handleInputChange}
-              placeholder="Maximum number of members to accept"
-            />
-            <p className="text-xs text-muted-foreground">
-              Set to 0 for unlimited registrations.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="requirements">Requirements</Label>
-            <Textarea
-              id="requirements"
-              name="requirements"
-              value={registrationDetails.requirements}
-              onChange={handleInputChange}
-              placeholder="List the requirements for membership"
-              className="min-h-[150px]"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="max-members">Maximum Members</Label>
+              <Input
+                id="max-members"
+                name="maxMembers"
+                type="number"
+                value={registrationDetails.maxMembers}
+                onChange={handleInputChange}
+                placeholder="Maximum number of members to accept"
+              />
+              <p className="text-xs text-muted-foreground">
+                Set to 0 for unlimited registrations.
+              </p>
+            </div>
           </div>
         </CardContent>
         <CardFooter>

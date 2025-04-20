@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -7,128 +7,120 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
-  Activity,
   Users,
   Calendar,
   FileText,
   Trophy,
   ArrowRight,
-  ArrowUpRight,
-  ArrowDownRight,
-  UserPlus,
-  Star,
+  Loader2,
 } from "lucide-react";
+import { memberApi, eventApi, contestApi } from "@/services/api";
 
-const OverviewSection = () => {
-  // Mock data for statistics
-  const stats = {
-    totalMembers: 125,
-    activeMembers: 105,
-    pendingApplications: 7,
+const OverviewSection = ({ setActivePage }) => {
+  const [stats, setStats] = useState({
+    members: {
+      total: 0,
+      active: 0,
+      pending: 0,
+    },
     events: {
-      upcoming: 3,
-      past: 12,
-      total: 15,
+      upcoming: 0,
+      total: 0,
     },
     contests: {
-      upcoming: 2,
-      past: 8,
-      total: 10,
+      upcoming: 0,
+      total: 0,
     },
-    blogs: {
-      published: 24,
-      draft: 5,
-      pending: 3,
-      total: 32,
-    },
-    memberGrowth: {
-      percentage: 18,
-      isPositive: true,
-    },
-    activityGrowth: {
-      percentage: 12,
-      isPositive: true,
-    },
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch active members
+        const activeMembers = await memberApi.getAll({
+          status: "active",
+          limit: 1,
+        });
+
+        // Fetch pending members
+        const pendingMembers = await memberApi.getAll({
+          status: "pending",
+          limit: 1,
+        });
+
+        // Fetch upcoming events
+        const upcomingEvents = await eventApi.getAll({
+          status: "upcoming",
+          limit: 1,
+        });
+
+        // Fetch upcoming contests
+        const upcomingContests = await contestApi.getAll({
+          status: "upcoming",
+          limit: 1,
+        });
+
+        setStats({
+          members: {
+            total:
+              (activeMembers.data.pagination?.totalMembers || 0) +
+              (pendingMembers.data.pagination?.totalMembers || 0),
+            active: activeMembers.data.pagination?.totalMembers || 0,
+            pending: pendingMembers.data.pagination?.totalMembers || 0,
+          },
+          events: {
+            upcoming: upcomingEvents.data.pagination?.totalEvents || 0,
+            total: upcomingEvents.data.pagination?.totalEvents || 0,
+          },
+          contests: {
+            upcoming: upcomingContests.data.pagination?.totalContests || 0,
+            total: upcomingContests.data.pagination?.totalContests || 0,
+          },
+        });
+
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching overview data:", err);
+        setError("Failed to fetch dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handlePageChange = (page) => {
+    if (setActivePage) {
+      setActivePage(page);
+    }
   };
 
-  // Recent activity data
-  const recentActivities = [
-    {
-      id: 1,
-      title: "New membership application",
-      description: "Priya Sharma applied to join MDPC",
-      time: "Just now",
-      type: "member",
-    },
-    {
-      id: 2,
-      title: "Blog post published",
-      description: "Understanding Dynamic Programming Paradigms",
-      time: "2 hours ago",
-      type: "blog",
-    },
-    {
-      id: 3,
-      title: "Event created",
-      description: "MDPC Spring Contest 2025",
-      time: "1 day ago",
-      type: "event",
-    },
-    {
-      id: 4,
-      title: "Contest results updated",
-      description: "Weekly Practice Contest #12 results",
-      time: "2 days ago",
-      type: "contest",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Top performers data
-  const topPerformers = [
-    {
-      id: 1,
-      name: "Ahmed Khan",
-      studentId: "2021331067",
-      rating: 1842,
-      contests: 24,
-      rank: 1,
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      studentId: "2020331042",
-      rating: 1795,
-      contests: 32,
-      rank: 2,
-    },
-    {
-      id: 3,
-      name: "David Lee",
-      studentId: "2022331012",
-      rating: 1750,
-      contests: 18,
-      rank: 3,
-    },
-    {
-      id: 4,
-      name: "Mina Patel",
-      studentId: "2019331089",
-      rating: 1708,
-      contests: 30,
-      rank: 4,
-    },
-    {
-      id: 5,
-      name: "John Smith",
-      studentId: "2019331001",
-      rating: 1680,
-      contests: 28,
-      rank: 5,
-    },
-  ];
+  if (error) {
+    return (
+      <div className="p-6 text-center border rounded-lg bg-muted/20">
+        <p className="text-destructive mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,36 +134,27 @@ const OverviewSection = () => {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Members</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalMembers}</div>
+            <div className="text-2xl font-bold">{stats.members.total}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.activeMembers} active, {stats.pendingApplications} pending
+              {stats.members.active} active, {stats.members.pending} pending
             </p>
           </CardContent>
           <CardFooter>
-            <div className="flex items-center text-xs text-muted-foreground">
-              {stats.memberGrowth.isPositive ? (
-                <ArrowUpRight className="mr-1 h-3 w-3 text-emerald-500" />
-              ) : (
-                <ArrowDownRight className="mr-1 h-3 w-3 text-rose-500" />
-              )}
-              <span
-                className={
-                  stats.memberGrowth.isPositive
-                    ? "text-emerald-500"
-                    : "text-rose-500"
-                }
-              >
-                {stats.memberGrowth.percentage}%
-              </span>
-              <span className="ml-1">from last month</span>
-            </div>
+            <Button
+              variant="ghost"
+              className="h-8 w-full justify-between p-0 text-xs"
+              onClick={() => handlePageChange("members")}
+            >
+              <span>Manage members</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
           </CardFooter>
         </Card>
 
@@ -192,37 +175,10 @@ const OverviewSection = () => {
             <Button
               variant="ghost"
               className="h-8 w-full justify-between p-0 text-xs"
-              asChild
+              onClick={() => handlePageChange("events")}
             >
-              <div>
-                <span>View all events</span>
-                <ArrowRight className="h-3 w-3" />
-              </div>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Blog Posts</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.blogs.published}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.blogs.draft} drafts, {stats.blogs.pending} pending
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button
-              variant="ghost"
-              className="h-8 w-full justify-between p-0 text-xs"
-              asChild
-            >
-              <div>
-                <span>Manage blog posts</span>
-                <ArrowRight className="h-3 w-3" />
-              </div>
+              <span>Manage events</span>
+              <ArrowRight className="h-3 w-3" />
             </Button>
           </CardFooter>
         </Card>
@@ -244,112 +200,10 @@ const OverviewSection = () => {
             <Button
               variant="ghost"
               className="h-8 w-full justify-between p-0 text-xs"
-              asChild
+              onClick={() => handlePageChange("contests")}
             >
-              <div>
-                <span>View all contests</span>
-                <ArrowRight className="h-3 w-3" />
-              </div>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Latest actions and updates across the platform.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-4 rounded-lg border p-3"
-                >
-                  <div
-                    className={`rounded-full p-2 ${
-                      activity.type === "member"
-                        ? "bg-blue-100 text-blue-700"
-                        : activity.type === "blog"
-                        ? "bg-purple-100 text-purple-700"
-                        : activity.type === "event"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-green-100 text-green-700"
-                    }`}
-                  >
-                    {activity.type === "member" && (
-                      <UserPlus className="h-4 w-4" />
-                    )}
-                    {activity.type === "blog" && (
-                      <FileText className="h-4 w-4" />
-                    )}
-                    {activity.type === "event" && (
-                      <Calendar className="h-4 w-4" />
-                    )}
-                    {activity.type === "contest" && (
-                      <Trophy className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">
-              View All Activity
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Top Performers</CardTitle>
-            <CardDescription>
-              Members with the highest contest ratings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {topPerformers.map((performer) => (
-                <div
-                  key={performer.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-primary h-8 w-8 flex items-center justify-center text-primary-foreground text-sm font-medium">
-                      {performer.rank}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{performer.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {performer.studentId}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Star className="h-3.5 w-3.5 text-amber-500 mr-1" />
-                    <span className="font-medium">{performer.rating}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">
-              View Leaderboard
+              <span>Manage contests</span>
+              <ArrowRight className="h-3 w-3" />
             </Button>
           </CardFooter>
         </Card>
@@ -364,30 +218,36 @@ const OverviewSection = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button className="h-auto flex-col py-4 px-2 space-y-2">
-              <UserPlus className="h-5 w-5" />
-              <span>Add Member</span>
+            <Button
+              className="h-auto flex-col py-4 px-2 space-y-2 w-full"
+              onClick={() => handlePageChange("members")}
+            >
+              <Users className="h-5 w-5" />
+              <span>Manage Members</span>
             </Button>
             <Button
-              className="h-auto flex-col py-4 px-2 space-y-2"
+              className="h-auto flex-col py-4 px-2 space-y-2 w-full"
               variant="outline"
+              onClick={() => handlePageChange("events")}
             >
               <Calendar className="h-5 w-5" />
-              <span>Create Event</span>
+              <span>Manage Events</span>
             </Button>
             <Button
-              className="h-auto flex-col py-4 px-2 space-y-2"
+              className="h-auto flex-col py-4 px-2 space-y-2 w-full"
               variant="outline"
-            >
-              <FileText className="h-5 w-5" />
-              <span>New Blog Post</span>
-            </Button>
-            <Button
-              className="h-auto flex-col py-4 px-2 space-y-2"
-              variant="outline"
+              onClick={() => handlePageChange("contests")}
             >
               <Trophy className="h-5 w-5" />
-              <span>Add Contest</span>
+              <span>Manage Contests</span>
+            </Button>
+            <Button
+              className="h-auto flex-col py-4 px-2 space-y-2 w-full"
+              variant="outline"
+              onClick={() => handlePageChange("registration")}
+            >
+              <FileText className="h-5 w-5" />
+              <span>Registration Settings</span>
             </Button>
           </div>
         </CardContent>

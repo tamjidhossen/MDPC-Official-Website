@@ -18,10 +18,10 @@ const DashboardPage = () => {
   const renderSection = () => {
     switch (activePage) {
       case "overview":
-        return <OverviewSection />;
+        return <OverviewSection setActivePage={setActivePage} />;
       case "blogs":
         return <BlogManagementSection />;
-      case "resources": 
+      case "resources":
         return <ResourceManagementSection />;
       case "members":
         return <MemberDatabaseSection />;
@@ -34,7 +34,7 @@ const DashboardPage = () => {
       case "admins":
         return <AdminManagementSection />;
       default:
-        return <OverviewSection />;
+        return <OverviewSection setActivePage={setActivePage} />;
     }
   };
 
