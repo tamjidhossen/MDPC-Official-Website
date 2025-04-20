@@ -432,7 +432,9 @@ const ContestManagementSection = () => {
                       className="w-full"
                       required
                     />
-                    <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Format: DD/MM/YYYY
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -528,7 +530,9 @@ const ContestManagementSection = () => {
                         type="date"
                         value={
                           newContest.registrationDeadline instanceof Date
-                            ? newContest.registrationDeadline.toISOString().split("T")[0]
+                            ? newContest.registrationDeadline
+                                .toISOString()
+                                .split("T")[0]
                             : newContest.registrationDeadline
                         }
                         onChange={(e) => {
@@ -541,7 +545,9 @@ const ContestManagementSection = () => {
                         className="w-full"
                         required
                       />
-                      <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Format: DD/MM/YYYY
+                      </p>
                     </div>
                   </div>
                 )}
@@ -762,7 +768,9 @@ const ContestManagementSection = () => {
                         value={
                           selectedContest.date instanceof Date
                             ? selectedContest.date.toISOString().split("T")[0]
-                            : new Date(selectedContest.date).toISOString().split("T")[0]
+                            : new Date(selectedContest.date)
+                                .toISOString()
+                                .split("T")[0]
                         }
                         onChange={(e) => {
                           const date = new Date(e.target.value);
@@ -771,7 +779,9 @@ const ContestManagementSection = () => {
                         className="w-full"
                         required
                       />
-                      <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Format: DD/MM/YYYY
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -887,22 +897,28 @@ const ContestManagementSection = () => {
                           type="date"
                           value={
                             selectedContest.registrationDeadline instanceof Date
-                              ? selectedContest.registrationDeadline.toISOString().split("T")[0]
+                              ? selectedContest.registrationDeadline
+                                  .toISOString()
+                                  .split("T")[0]
                               : selectedContest.registrationDeadline
-                                ? new Date(selectedContest.registrationDeadline).toISOString().split("T")[0]
-                                : ""
+                              ? new Date(selectedContest.registrationDeadline)
+                                  .toISOString()
+                                  .split("T")[0]
+                              : ""
                           }
                           onChange={(e) => {
                             const date = new Date(e.target.value);
                             setSelectedContest({
-                              ...selectedContest, 
-                              registrationDeadline: date
+                              ...selectedContest,
+                              registrationDeadline: date,
                             });
                           }}
                           className="w-full"
                           required
                         />
-                        <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Format: DD/MM/YYYY
+                        </p>
                       </div>
                     </div>
                   )}
