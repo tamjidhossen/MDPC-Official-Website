@@ -245,30 +245,35 @@ const BlogManagementSection = () => {
     const authorName = blog.author?.name || "Unknown Author";
 
     return (
-      <Card key={blog._id}>
-        <CardHeader>
-          <CardTitle>{blog.title}</CardTitle>
-          <CardDescription>
+      <Card key={blog._id} className="overflow-hidden">
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-base md:text-lg line-clamp-2 break-words">
+            {blog.title}
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm">
             By {authorName} • {formattedDate} • {blog.category}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <p className="text-sm text-muted-foreground line-clamp-3">
             {blog.content || "No content preview available"}
           </p>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="flex space-x-2">
+        <CardFooter className="p-4 md:p-6 pt-2 md:pt-2 flex flex-col sm:flex-row justify-between gap-2">
+          <div className="flex space-x-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
               onClick={() => handleViewBlog(blog)}
               disabled={isActionLoading}
+              className="w-full sm:w-auto"
             >
               <Eye className="mr-2 h-4 w-4" /> View
             </Button>
           </div>
-          <div className="flex space-x-2">{getActionButtons(blog)}</div>
+          <div className="flex space-x-2 w-full sm:w-auto">
+            {getActionButtons(blog)}
+          </div>
         </CardFooter>
       </Card>
     );
@@ -293,7 +298,11 @@ const BlogManagementSection = () => {
         </p>
       );
     }
-    return <div className="space-y-4">{filteredBlogs.map(renderBlogCard)}</div>;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredBlogs.map(renderBlogCard)}
+      </div>
+    );
   };
 
   return (
@@ -306,7 +315,7 @@ const BlogManagementSection = () => {
       </div>
 
       <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
+        <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
           placeholder="Search by title or author..."
           value={searchTerm}
@@ -317,7 +326,7 @@ const BlogManagementSection = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
+        <TabsList className="w-full sm:w-auto overflow-auto">
           <TabsTrigger value="pending" disabled={loading.fetching}>
             Pending Review{" "}
             {!loading.fetching && (
@@ -353,11 +362,13 @@ const BlogManagementSection = () => {
 
       {/* Blog View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[625px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[625px] max-h-[80vh] overflow-y-auto p-4 sm:p-6">
           {selectedBlog && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedBlog.title}</DialogTitle>
+                <DialogTitle className="text-xl break-words">
+                  {selectedBlog.title}
+                </DialogTitle>
                 <DialogDescription>
                   By {selectedBlog.author?.name || "Unknown"} •{" "}
                   {selectedBlog.createdAt
@@ -376,7 +387,7 @@ const BlogManagementSection = () => {
                 </DialogDescription>
               </DialogHeader>
               <Separator className="my-4" />
-              <div className="py-4 prose dark:prose-invert max-w-none">
+              <div className="py-4 prose dark:prose-invert max-w-none overflow-x-auto">
                 {/* Render actual content - consider using a Markdown renderer if content is Markdown */}
                 <div
                   dangerouslySetInnerHTML={{
@@ -385,13 +396,14 @@ const BlogManagementSection = () => {
                 />
               </div>
               <Separator className="my-4" />
-              <DialogFooter>
+              <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
                 {selectedBlog.status === "pending" && (
                   <>
                     <Button
                       variant="outline"
                       onClick={() => updateStatus(selectedBlog._id, "rejected")}
                       disabled={loading.action === selectedBlog._id}
+                      className="w-full sm:w-auto order-2 sm:order-1"
                     >
                       {loading.action === selectedBlog._id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -403,6 +415,7 @@ const BlogManagementSection = () => {
                     <Button
                       onClick={() => updateStatus(selectedBlog._id, "approved")}
                       disabled={loading.action === selectedBlog._id}
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       {loading.action === selectedBlog._id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -419,6 +432,7 @@ const BlogManagementSection = () => {
                       variant="destructive"
                       onClick={() => deleteBlogHandler(selectedBlog._id)}
                       disabled={loading.action === selectedBlog._id}
+                      className="w-full sm:w-auto order-2 sm:order-1"
                     >
                       {loading.action === selectedBlog._id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -430,6 +444,7 @@ const BlogManagementSection = () => {
                     <Button
                       onClick={() => updateStatus(selectedBlog._id, "approved")}
                       disabled={loading.action === selectedBlog._id}
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       {loading.action === selectedBlog._id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -446,6 +461,7 @@ const BlogManagementSection = () => {
                       variant="destructive"
                       onClick={() => deleteBlogHandler(selectedBlog._id)}
                       disabled={loading.action === selectedBlog._id}
+                      className="w-full sm:w-auto order-2 sm:order-1"
                     >
                       {loading.action === selectedBlog._id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -457,6 +473,7 @@ const BlogManagementSection = () => {
                     <Button
                       variant="outline"
                       onClick={() => setViewDialogOpen(false)}
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       Close
                     </Button>

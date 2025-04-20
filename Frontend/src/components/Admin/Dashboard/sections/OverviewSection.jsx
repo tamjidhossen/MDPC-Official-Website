@@ -134,7 +134,7 @@ const OverviewSection = ({ setActivePage }) => {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Members</CardTitle>
@@ -217,7 +217,7 @@ const OverviewSection = ({ setActivePage }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <Button
               className="h-auto flex-col py-4 px-2 space-y-2 w-full"
               onClick={() => handlePageChange("members")}

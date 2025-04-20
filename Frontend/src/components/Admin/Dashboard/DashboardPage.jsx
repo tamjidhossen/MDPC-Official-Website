@@ -8,11 +8,12 @@ import EventManagementSection from "./sections/EventManagementSection";
 import ContestManagementSection from "./sections/ContestManagementSection";
 import RegistrationSettingsSection from "./sections/RegistrationSettingsSection";
 import AdminManagementSection from "./sections/AdminManagementSection";
-import ResourceManagementSection from "./sections/ResourceManagementSection"; // Import ResourceManagementSection
+import ResourceManagementSection from "./sections/ResourceManagementSection";
 import { Toaster } from "@/components/ui/toaster";
 
 const DashboardPage = () => {
   const [activePage, setActivePage] = useState("overview");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Render the appropriate section based on activePage state
   const renderSection = () => {
@@ -39,16 +40,23 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       <DashboardSidebar
         activePage={activePage}
         setActivePage={setActivePage}
         userName="Administrator"
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
       />
 
       {/* Main content */}
-      <main className="flex-1 transition-all duration-300">
-        <div className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto">
+      <main
+        className={cn(
+          "flex-1 transition-all duration-300 overflow-auto",
+          sidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        )}
+      >
+        <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
           {renderSection()}
         </div>
       </main>

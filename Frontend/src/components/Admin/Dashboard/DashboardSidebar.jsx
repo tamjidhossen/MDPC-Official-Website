@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ShieldCheck,
   ArrowLeft,
-  BookOpen, // Added icon
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,9 +23,10 @@ const DashboardSidebar = ({
   activePage,
   setActivePage,
   userName = "Admin",
+  isCollapsed,
+  setIsCollapsed,
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -98,25 +99,27 @@ const DashboardSidebar = ({
           <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72">
+      <SheetContent side="left" className="w-72 max-w-[85vw]">
         <div className="px-2 py-6">
           <Link to="/admin" className="flex items-center mb-6">
             <img src="/midday.png" alt="MDPC Logo" className="h-8 w-8 mr-2" />
             <h2 className="text-lg font-bold">MDPC Admin</h2>
           </Link>
-          <nav className="flex flex-col gap-2">
-            {menuItems.map((item) => (
-              <Button
-                key={item.id}
-                variant={activePage === item.id ? "default" : "ghost"}
-                className="justify-start"
-                onClick={() => handleMenuItemClick(item.id)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.name}</span>
-              </Button>
-            ))}
-          </nav>
+          <ScrollArea className="h-[calc(100vh-200px)]">
+            <nav className="flex flex-col gap-2 pr-4">
+              {menuItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activePage === item.id ? "default" : "ghost"}
+                  className="justify-start"
+                  onClick={() => handleMenuItemClick(item.id)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.name}</span>
+                </Button>
+              ))}
+            </nav>
+          </ScrollArea>
 
           <div className="absolute bottom-6 left-6 right-6">
             <div className="flex items-center justify-between pb-4">
@@ -152,9 +155,15 @@ const DashboardSidebar = ({
       )}
     >
       <div className="flex items-center h-14 px-4 border-b">
-        <Link to="/admin" className="flex items-center gap-2">
-          <img src="/midday.png" alt="MDPC Logo" className="h-7 w-7" />
-          {!isCollapsed && <h2 className="font-bold text-lg">MDPC Admin</h2>}
+        <Link to="/admin" className="flex items-center gap-2 overflow-hidden">
+          <img
+            src="/midday.png"
+            alt="MDPC Logo"
+            className="h-7 w-7 flex-shrink-0"
+          />
+          {!isCollapsed && (
+            <h2 className="font-bold text-lg truncate">MDPC Admin</h2>
+          )}
         </Link>
         <Button
           variant="ghost"
@@ -178,9 +187,12 @@ const DashboardSidebar = ({
                 isCollapsed && "justify-center px-2"
               )}
               onClick={() => handleMenuItemClick(item.id)}
+              title={isCollapsed ? item.name : undefined}
             >
               {item.icon}
-              {!isCollapsed && <span className="ml-2">{item.name}</span>}
+              {!isCollapsed && (
+                <span className="ml-2 truncate">{item.name}</span>
+              )}
             </Button>
           ))}
         </nav>
@@ -196,12 +208,12 @@ const DashboardSidebar = ({
           <div
             className={cn("flex items-center gap-2", isCollapsed && "flex-col")}
           >
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground flex-shrink-0">
               {displayName.charAt(0)}
             </div>
             {!isCollapsed && (
-              <div>
-                <p className="text-sm font-medium">{displayName}</p>
+              <div className="truncate">
+                <p className="text-sm font-medium truncate">{displayName}</p>
                 <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
             )}
@@ -212,7 +224,8 @@ const DashboardSidebar = ({
               variant="ghost"
               size="icon"
               onClick={handleReturnToUserDashboard}
-              className="ml-auto"
+              className="ml-auto flex-shrink-0"
+              title="Return to User Dashboard"
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Return to User Dashboard</span>

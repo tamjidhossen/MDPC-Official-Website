@@ -349,6 +349,7 @@ const ResourceManagementSection = () => {
     }
   };
 
+  // Resource card rendering with improved responsiveness
   const renderResourceCard = (resource) => {
     const isActionLoading = loading.action === resource._id;
     const formattedDate = resource.createdAt
@@ -357,19 +358,21 @@ const ResourceManagementSection = () => {
     const authorName = resource.author?.name || "Unknown Author";
 
     return (
-      <Card key={resource._id}>
-        <CardHeader>
-          <div className="flex justify-between">
-            <div>
-              <CardTitle>{resource.title}</CardTitle>
-              <CardDescription>
+      <Card key={resource._id} className="overflow-hidden">
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+            <div className="space-y-1">
+              <CardTitle className="text-base md:text-lg break-words pr-2">
+                {resource.title}
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm">
                 By {authorName} • {formattedDate} • {resource.category}
               </CardDescription>
             </div>
-            {getLevelBadge(resource.level)}
+            <div className="mt-1 sm:mt-0">{getLevelBadge(resource.level)}</div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <p className="text-sm text-muted-foreground line-clamp-3">
             {resource.content || "No content preview available"}
           </p>
@@ -383,23 +386,25 @@ const ResourceManagementSection = () => {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="flex space-x-2">
+        <CardFooter className="p-4 md:p-6 pt-2 md:pt-2 flex flex-col sm:flex-row justify-between gap-2">
+          <div className="flex space-x-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
               onClick={() => handleViewResource(resource)}
               disabled={isActionLoading}
+              className="w-full sm:w-auto"
             >
               <Eye className="mr-2 h-4 w-4" /> View
             </Button>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
               onClick={() => handleEditResource(resource)}
               disabled={isActionLoading}
+              className="w-full sm:w-auto"
             >
               <Edit className="mr-2 h-4 w-4" /> Edit
             </Button>
@@ -408,6 +413,7 @@ const ResourceManagementSection = () => {
               variant="destructive"
               onClick={() => deleteResourceHandler(resource._id)}
               disabled={isActionLoading}
+              className="w-full sm:w-auto"
             >
               {isActionLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -458,61 +464,67 @@ const ResourceManagementSection = () => {
         </p>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center space-x-2 w-full max-w-md">
+        <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Input
           placeholder="Search by title, category, or author..."
           value={searchTerm}
           onChange={handleSearch}
-          className="max-w-sm"
+          className="flex-1"
           disabled={loading.fetching}
         />
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="all" disabled={loading.fetching}>
-            All Resources{" "}
-            {!loading.fetching && (
-              <Badge className="ml-2">{resources.all.length}</Badge>
-            )}
-          </TabsTrigger>
-          {/* <TabsTrigger value="beginner" disabled={loading.fetching}>
-            Beginner{" "}
-            {!loading.fetching && (
-              <Badge className="ml-2">{resources.beginner.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="intermediate" disabled={loading.fetching}>
-            Intermediate{" "}
-            {!loading.fetching && (
-              <Badge className="ml-2">{resources.intermediate.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="advanced" disabled={loading.fetching}>
-            Advanced{" "}
-            {!loading.fetching && (
-              <Badge className="ml-2">{resources.advanced.length}</Badge>
-            )}
-          </TabsTrigger> */}
-        </TabsList>
+      <div className="rounded-md w-full overflow-hidden">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
+          <TabsList className="w-full sm:w-auto overflow-auto">
+            <TabsTrigger value="all" disabled={loading.fetching}>
+              All Resources{" "}
+              {!loading.fetching && (
+                <Badge className="ml-2">{resources.all.length}</Badge>
+              )}
+            </TabsTrigger>
+            {/* <TabsTrigger value="beginner" disabled={loading.fetching}>
+              Beginner{" "}
+              {!loading.fetching && (
+                <Badge className="ml-2">{resources.beginner.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="intermediate" disabled={loading.fetching}>
+              Intermediate{" "}
+              {!loading.fetching && (
+                <Badge className="ml-2">{resources.intermediate.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="advanced" disabled={loading.fetching}>
+              Advanced{" "}
+              {!loading.fetching && (
+                <Badge className="ml-2">{resources.advanced.length}</Badge>
+              )}
+            </TabsTrigger> */}
+          </TabsList>
 
-        <TabsContent value="all" className="mt-6">
-          {renderTabContent("all")}
-        </TabsContent>
+          <TabsContent value="all" className="mt-6">
+            {renderTabContent("all")}
+          </TabsContent>
 
-        {/* <TabsContent value="beginner" className="mt-6">
-          {renderTabContent("beginner")}
-        </TabsContent>
+          {/* <TabsContent value="beginner" className="mt-6">
+            {renderTabContent("beginner")}
+          </TabsContent>
 
-        <TabsContent value="intermediate" className="mt-6">
-          {renderTabContent("intermediate")}
-        </TabsContent>
+          <TabsContent value="intermediate" className="mt-6">
+            {renderTabContent("intermediate")}
+          </TabsContent>
 
-        <TabsContent value="advanced" className="mt-6">
-          {renderTabContent("advanced")}
-        </TabsContent> */}
-      </Tabs>
+          <TabsContent value="advanced" className="mt-6">
+            {renderTabContent("advanced")}
+          </TabsContent> */}
+        </Tabs>
+      </div>
 
       {/* Create/Edit Resource Section */}
       <div id="create-section" className="mt-12 pt-8 border-t">
@@ -555,7 +567,7 @@ const ResourceManagementSection = () => {
                 <SelectTrigger id="level">
                   <SelectValue placeholder="Select level" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   <SelectItem value="beginner">Beginner</SelectItem>
                   <SelectItem value="intermediate">Intermediate</SelectItem>
                   <SelectItem value="advanced">Advanced</SelectItem>
@@ -603,7 +615,7 @@ const ResourceManagementSection = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label>External Links</Label>
               <Button
                 type="button"
@@ -616,7 +628,10 @@ const ResourceManagementSection = () => {
             </div>
 
             {formData.externalLinks.map((link, index) => (
-              <div key={index} className="flex items-end gap-4">
+              <div
+                key={index}
+                className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4"
+              >
                 <div className="flex-1 space-y-2">
                   <Label htmlFor={`link-title-${index}`} className="text-sm">
                     Title
@@ -649,7 +664,7 @@ const ResourceManagementSection = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => removeLinkField(index)}
-                    className="h-10 w-10 flex-shrink-0"
+                    className="h-10 w-10 flex-shrink-0 mt-auto sm:mt-0"
                   >
                     <Trash className="h-4 w-4" />
                   </Button>
@@ -658,11 +673,11 @@ const ResourceManagementSection = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
             <Button
               type="submit"
               disabled={loading.creating}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               {loading.creating && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -675,6 +690,7 @@ const ResourceManagementSection = () => {
                 variant="outline"
                 onClick={resetForm}
                 disabled={loading.creating}
+                className="w-full sm:w-auto"
               >
                 Cancel Edit
               </Button>
@@ -685,15 +701,19 @@ const ResourceManagementSection = () => {
 
       {/* Resource View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[625px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[625px] max-h-[80vh] overflow-y-auto p-4 sm:p-6">
           {selectedResource && (
             <>
               <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle>{selectedResource.title}</DialogTitle>
-                  {getLevelBadge(selectedResource.level)}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <DialogTitle className="text-xl break-words pr-2">
+                    {selectedResource.title}
+                  </DialogTitle>
+                  <div className="mt-1 sm:mt-0">
+                    {getLevelBadge(selectedResource.level)}
+                  </div>
                 </div>
-                <DialogDescription>
+                <DialogDescription className="text-sm mt-2">
                   By {selectedResource.author?.name || "Unknown"} •{" "}
                   {selectedResource.createdAt
                     ? format(new Date(selectedResource.createdAt), "PPP")
@@ -713,7 +733,7 @@ const ResourceManagementSection = () => {
               </DialogHeader>
               <Separator className="my-4" />
 
-              <div className="py-4 prose dark:prose-invert max-w-none">
+              <div className="py-4 prose dark:prose-invert max-w-none overflow-x-auto">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: selectedResource.content.replace(/\n/g, "<br />"),
@@ -732,12 +752,12 @@ const ResourceManagementSection = () => {
                       <div className="space-y-1">
                         {selectedResource.externalLinks.map((link, index) => (
                           <div key={index} className="flex items-center">
-                            <ExternalLink className="h-3 w-3 mr-2 text-muted-foreground" />
+                            <ExternalLink className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
                             <a
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
                             >
                               {link.title || link.url}
                             </a>
@@ -752,11 +772,11 @@ const ResourceManagementSection = () => {
                 <>
                   <Separator className="my-4" />
                   <div className="flex items-center">
-                    <FileUp className="h-4 w-4 mr-2" />
+                    <FileUp className="h-4 w-4 mr-2 flex-shrink-0" />
                     <a
-                      href={`/api/resources/download/${selectedResource._id}`} // Assuming this endpoint exists
+                      href={`/api/resources/download/${selectedResource._id}`}
                       download
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
                     >
                       Download Attached File
                     </a>
@@ -765,10 +785,11 @@ const ResourceManagementSection = () => {
               )}
 
               <Separator className="my-4" />
-              <DialogFooter className="gap-2">
+              <DialogFooter className="gap-2 flex-col sm:flex-row">
                 <Button
                   variant="outline"
                   onClick={() => handleEditResource(selectedResource)}
+                  className="w-full sm:w-auto"
                 >
                   <Edit className="mr-2 h-4 w-4" /> Edit
                 </Button>
@@ -776,6 +797,7 @@ const ResourceManagementSection = () => {
                   variant="destructive"
                   onClick={() => deleteResourceHandler(selectedResource._id)}
                   disabled={loading.action === selectedResource._id}
+                  className="w-full sm:w-auto"
                 >
                   {loading.action === selectedResource._id ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -787,6 +809,7 @@ const ResourceManagementSection = () => {
                 <Button
                   variant="outline"
                   onClick={() => setViewDialogOpen(false)}
+                  className="w-full sm:w-auto"
                 >
                   Close
                 </Button>
