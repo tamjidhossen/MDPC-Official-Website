@@ -17,6 +17,7 @@ import { eventApi } from "@/services/api";
 import { format } from "date-fns";
 
 const EventsPage = () => {
+  // Changed from "past" to "completed" to match backend API
   const [filter, setFilter] = useState("upcoming");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +92,7 @@ const EventsPage = () => {
         </p>
       </div>
 
-      {/* Filter Controls */}
+      {/* Filter Controls - Updated filter options to match backend API values */}
       <div className="flex flex-wrap gap-2 justify-center mb-10">
         <Button
           variant={filter === "upcoming" ? "default" : "outline"}
@@ -100,8 +101,14 @@ const EventsPage = () => {
           Upcoming Events
         </Button>
         <Button
-          variant={filter === "past" ? "default" : "outline"}
-          onClick={() => setFilter("past")}
+          variant={filter === "ongoing" ? "default" : "outline"}
+          onClick={() => setFilter("ongoing")}
+        >
+          Ongoing Events
+        </Button>
+        <Button
+          variant={filter === "completed" ? "default" : "outline"}
+          onClick={() => setFilter("completed")}
         >
           Past Events
         </Button>
@@ -145,6 +152,15 @@ const EventsPage = () => {
                       {event.status === "upcoming" && (
                         <Badge variant="default">Upcoming</Badge>
                       )}
+                      {event.status === "ongoing" && (
+                        <Badge variant="secondary">Ongoing</Badge>
+                      )}
+                      {event.status === "completed" && (
+                        <Badge variant="outline">Completed</Badge>
+                      )}
+                      {event.status === "cancelled" && (
+                        <Badge variant="destructive">Cancelled</Badge>
+                      )}
                     </div>
                     <CardTitle>{event.title}</CardTitle>
                     <CardDescription>{event.description}</CardDescription>
@@ -163,11 +179,20 @@ const EventsPage = () => {
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <span>{event.venue}</span>
                       </div>
-                      
+                      {event.maxParticipants > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            {event.participants ? event.participants.length : 0}{" "}
+                            / {event.maxParticipants} participants
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                   <CardFooter>
-                    {event.status === "upcoming" ? (
+                    {event.status === "upcoming" ||
+                    event.status === "ongoing" ? (
                       event.registrationOpen ? (
                         <Button
                           className="w-full"
@@ -183,11 +208,17 @@ const EventsPage = () => {
                             : "Register Now"}
                         </Button>
                       ) : (
-                        <></>
+                        <Button disabled className="w-full">
+                          Registration Closed
+                        </Button>
                       )
+                    ) : event.status === "completed" ? (
+                      <Button variant="secondary" className="w-full" disabled>
+                        Event Completed
+                      </Button>
                     ) : (
-                      <Button variant="outline" className="w-full" asChild>
-                        <Link to={`/events/${event._id}`}>View Details</Link>
+                      <Button variant="destructive" className="w-full" disabled>
+                        Event Cancelled
                       </Button>
                     )}
                   </CardFooter>
