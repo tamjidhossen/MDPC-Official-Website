@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,14 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,77 +21,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Edit, Trash, Users, Eye } from "lucide-react";
+import { Plus, Edit, Trash, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { eventApi } from "@/services/api";
 
 const EventManagementSection = () => {
   const { toast } = useToast();
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      title: "MDPC Weekly Contest",
-      description:
-        "A weekly programming contest to enhance problem-solving skills.",
-      date: new Date(2025, 3, 15), // April 15, 2025
-      venue: "CSE Building, Room 301",
-      time: "2:00 PM - 5:00 PM",
-      type: "contest",
-      registration: true,
-      maxParticipants: 50,
-      currentParticipants: 32,
-      status: "upcoming",
-    },
-    {
-      id: 2,
-      title: "Algorithm Workshop",
-      description:
-        "Learn advanced algorithmic techniques for competitive programming.",
-      date: new Date(2025, 3, 20), // April 20, 2025
-      venue: "CSE Building, Room 201",
-      time: "3:30 PM - 6:00 PM",
-      type: "workshop",
-      registration: true,
-      maxParticipants: 30,
-      currentParticipants: 18,
-      status: "upcoming",
-    },
-    {
-      id: 3,
-      title: "MDPC Spring Contest 2025",
-      description:
-        "A major contest event with challenging problems and exciting prizes.",
-      date: new Date(2025, 4, 5), // May 5, 2025
-      venue: "University Auditorium",
-      time: "10:00 AM - 3:00 PM",
-      type: "contest",
-      registration: true,
-      maxParticipants: 100,
-      currentParticipants: 75,
-      status: "upcoming",
-    },
-    {
-      id: 4,
-      title: "Data Structures Bootcamp",
-      description:
-        "Intensive training on data structures for competitive programming.",
-      date: new Date(2025, 2, 25), // March 25, 2025 (past)
-      venue: "Online (Zoom)",
-      time: "4:00 PM - 7:00 PM",
-      type: "workshop",
-      registration: true,
-      maxParticipants: 60,
-      currentParticipants: 54,
-      status: "past",
-    },
-  ]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -107,10 +39,10 @@ const EventManagementSection = () => {
     date: new Date(),
     venue: "",
     time: "",
-    type: "event",
-    registration: false,
+    type: "",
+    registrationOpen: false,
+    registrationDeadline: "",
     maxParticipants: 0,
-    currentParticipants: 0,
     status: "upcoming",
   });
 
@@ -118,123 +50,221 @@ const EventManagementSection = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
 
-  // Dummy data for event participants
-  const dummyParticipants = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john@example.com",
-      registrationDate: "2025-04-10",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah@example.com",
-      registrationDate: "2025-04-11",
-    },
-    {
-      id: 3,
-      name: "Ahmed Khan",
-      email: "ahmed@example.com",
-      registrationDate: "2025-04-11",
-    },
-    {
-      id: 4,
-      name: "Mina Patel",
-      email: "mina@example.com",
-      registrationDate: "2025-04-12",
-    },
-  ];
+  useEffect(() => {
+    fetchEvents();
+  }, [activeTab]);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const response = await eventApi.getAll({ status: activeTab });
+      setEvents(response.data.events || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setError("Failed to load events.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load events. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+
     setNewEvent((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleEditChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+
     setSelectedEvent((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleCreateEvent = (e) => {
+  const handleCreateEvent = async (e) => {
     e.preventDefault();
-    // Here would be API call to create the event
-    const eventToAdd = {
-      ...newEvent,
-      id: events.length + 1,
-      currentParticipants: 0,
-    };
 
-    setEvents((prev) => [...prev, eventToAdd]);
-    setCreateDialogOpen(false);
-    setNewEvent({
-      title: "",
-      description: "",
-      date: new Date(),
-      venue: "",
-      time: "",
-      type: "event",
-      registration: false,
-      maxParticipants: 0,
-      currentParticipants: 0,
-      status: "upcoming",
-    });
+    try {
+      const formData = new FormData();
 
-    toast({
-      title: "Event Created",
-      description: `"${eventToAdd.title}" has been successfully created.`,
-    });
+      // Add all event data to the form
+      Object.keys(newEvent).forEach((key) => {
+        if (key === "date" && newEvent[key] instanceof Date) {
+          formData.append(key, newEvent[key].toISOString().split("T")[0]);
+        } else if (
+          key === "registrationDeadline" &&
+          newEvent[key] instanceof Date
+        ) {
+          formData.append(key, newEvent[key].toISOString().split("T")[0]);
+        } else if (newEvent[key] !== undefined && newEvent[key] !== "") {
+          formData.append(key, newEvent[key]);
+        }
+      });
+
+      await eventApi.create(formData);
+
+      toast({
+        title: "Event Created",
+        description: `"${newEvent.title}" has been successfully created.`,
+      });
+
+      setCreateDialogOpen(false);
+      setNewEvent({
+        title: "",
+        description: "",
+        date: new Date(),
+        venue: "",
+        time: "",
+        type: "",
+        registrationOpen: false,
+        registrationDeadline: "",
+        maxParticipants: 0,
+        status: "upcoming",
+      });
+
+      // Refresh events list
+      fetchEvents();
+    } catch (err) {
+      console.error("Error creating event:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.response?.data?.message || "Failed to create event.",
+      });
+    }
   };
 
-  const handleUpdateEvent = (e) => {
+  const handleUpdateEvent = async (e) => {
     e.preventDefault();
-    // Here would be API call to update the event
-    setEvents((prev) =>
-      prev.map((event) =>
-        event.id === selectedEvent.id ? selectedEvent : event
+
+    try {
+      const formData = new FormData();
+
+      // Add all event data to the form
+      Object.keys(selectedEvent).forEach((key) => {
+        if (
+          key === "_id" ||
+          key === "__v" ||
+          key === "participants" ||
+          key === "createdAt" ||
+          key === "updatedAt"
+        ) {
+          // Skip these fields
+          return;
+        }
+
+        if (key === "date" && selectedEvent[key] instanceof Date) {
+          formData.append(key, selectedEvent[key].toISOString().split("T")[0]);
+        } else if (
+          key === "registrationDeadline" &&
+          selectedEvent[key] instanceof Date
+        ) {
+          formData.append(key, selectedEvent[key].toISOString().split("T")[0]);
+        } else if (selectedEvent[key] !== undefined) {
+          formData.append(key, selectedEvent[key]);
+        }
+      });
+
+      await eventApi.update(selectedEvent._id, formData);
+
+      toast({
+        title: "Event Updated",
+        description: `"${selectedEvent.title}" has been successfully updated.`,
+      });
+
+      setEditDialogOpen(false);
+
+      // Refresh events list
+      fetchEvents();
+    } catch (err) {
+      console.error("Error updating event:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.response?.data?.message || "Failed to update event.",
+      });
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this event? This action cannot be undone."
       )
-    );
+    ) {
+      return;
+    }
 
-    setEditDialogOpen(false);
+    try {
+      await eventApi.delete(eventId);
 
-    toast({
-      title: "Event Updated",
-      description: `"${selectedEvent.title}" has been successfully updated.`,
-    });
-  };
+      toast({
+        title: "Event Deleted",
+        description: "The event has been successfully deleted.",
+      });
 
-  const handleDeleteEvent = (eventId) => {
-    // Here would be API call to delete the event
-    setEvents((prev) => prev.filter((event) => event.id !== eventId));
-
-    toast({
-      title: "Event Deleted",
-      description: "The event has been successfully deleted.",
-    });
-  };
-
-  const handleViewEvent = (event) => {
-    setSelectedEvent(event);
-    setViewDialogOpen(true);
+      // Refresh events list
+      fetchEvents();
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.response?.data?.message || "Failed to delete event.",
+      });
+    }
   };
 
   const handleEditEvent = (event) => {
-    setSelectedEvent({ ...event });
+    const eventData = { ...event };
+
+    // Convert string dates to Date objects
+    if (event.date) {
+      eventData.date = new Date(event.date);
+    }
+
+    if (event.registrationDeadline) {
+      eventData.registrationDeadline = new Date(event.registrationDeadline);
+    }
+
+    setSelectedEvent(eventData);
     setEditDialogOpen(true);
   };
 
-  const handleViewRegistrations = (event) => {
-    setSelectedEvent(event);
-    setRegistrationDialogOpen(true);
+  const handleViewRegistrations = async (event) => {
+    try {
+      // Fetch event details with participants
+      const response = await eventApi.getById(event._id);
+      setSelectedEvent(response.data.event);
+      setRegistrationDialogOpen(true);
+    } catch (err) {
+      console.error("Error fetching event registrations:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load event registrations.",
+      });
+    }
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      return format(new Date(dateString), "PPP");
+    } catch (e) {
+      return dateString || "No date set";
+    }
   };
 
   const filteredEvents = events.filter((event) => event.status === activeTab);
@@ -296,29 +326,23 @@ const EventManagementSection = () => {
                     Date
                   </Label>
                   <div className="col-span-3">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newEvent.date
-                            ? format(newEvent.date, "PPP")
-                            : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={newEvent.date}
-                          onSelect={(date) =>
-                            setNewEvent({ ...newEvent, date })
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="date"
+                      value={
+                        newEvent.date instanceof Date
+                          ? newEvent.date.toISOString().split("T")[0]
+                          : newEvent.date
+                      }
+                      onChange={(e) => {
+                        const date = new Date(e.target.value);
+                        setNewEvent((prev) => ({ ...prev, date }));
+                      }}
+                      className="w-full"
+                      min={new Date().toISOString().split("T")[0]}
+                      required
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -330,7 +354,7 @@ const EventManagementSection = () => {
                     name="time"
                     value={newEvent.time}
                     onChange={handleInputChange}
-                    placeholder="e.g., 2:00 PM - 5:00 PM"
+                    placeholder="e.g., 2:00 PM"
                     className="col-span-3"
                     required
                   />
@@ -344,6 +368,7 @@ const EventManagementSection = () => {
                     name="venue"
                     value={newEvent.venue}
                     onChange={handleInputChange}
+                    placeholder="e.g., CSE Building, Room 301"
                     className="col-span-3"
                     required
                   />
@@ -352,60 +377,106 @@ const EventManagementSection = () => {
                   <Label htmlFor="type" className="text-right">
                     Event Type
                   </Label>
-                  <select
+                  <Input
                     id="type"
                     name="type"
                     value={newEvent.type}
                     onChange={handleInputChange}
-                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  >
-                    <option value="event">General Event</option>
-                    <option value="workshop">Workshop</option>
-                    <option value="contest">Contest</option>
-                  </select>
+                    placeholder="e.g., Workshop, Competition, Seminar"
+                    className="col-span-3"
+                    required
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="registration" className="text-right">
+                  <Label htmlFor="registrationOpen" className="text-right">
                     Registration
                   </Label>
                   <div className="col-span-3 flex items-center space-x-2">
                     <input
-                      id="registration"
-                      name="registration"
+                      id="registrationOpen"
+                      name="registrationOpen"
                       type="checkbox"
-                      checked={newEvent.registration}
-                      onChange={(e) =>
-                        setNewEvent({
-                          ...newEvent,
-                          registration: e.target.checked,
-                        })
-                      }
+                      checked={newEvent.registrationOpen}
+                      onChange={handleInputChange}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <Label
-                      htmlFor="registration"
+                      htmlFor="registrationOpen"
                       className="text-sm font-normal"
                     >
                       Enable registration for this event
                     </Label>
                   </div>
                 </div>
-                {newEvent.registration && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="maxParticipants" className="text-right">
-                      Max Participants
-                    </Label>
-                    <Input
-                      id="maxParticipants"
-                      name="maxParticipants"
-                      type="number"
-                      value={newEvent.maxParticipants}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="col-span-3"
-                    />
-                  </div>
+                {newEvent.registrationOpen && (
+                  <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label
+                        htmlFor="registrationDeadline"
+                        className="text-right"
+                      >
+                        Registration Deadline
+                      </Label>
+                      <div className="col-span-3">
+                        <Input
+                          id="registrationDeadline"
+                          name="registrationDeadline"
+                          type="date"
+                          value={
+                            newEvent.registrationDeadline instanceof Date
+                              ? newEvent.registrationDeadline
+                                  .toISOString()
+                                  .split("T")[0]
+                              : newEvent.registrationDeadline instanceof String
+                              ? newEvent.registrationDeadline
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            setNewEvent((prev) => ({
+                              ...prev,
+                              registrationDeadline: date,
+                            }));
+                          }}
+                          className="w-full"
+                          min={new Date().toISOString().split("T")[0]}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="maxParticipants" className="text-right">
+                        Max Participants
+                      </Label>
+                      <Input
+                        id="maxParticipants"
+                        name="maxParticipants"
+                        type="number"
+                        value={newEvent.maxParticipants}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="col-span-3"
+                      />
+                    </div>
+                  </>
                 )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    Status
+                  </Label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={newEvent.status}
+                    onChange={handleInputChange}
+                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  >
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
               </div>
               <DialogFooter>
                 <Button
@@ -425,264 +496,112 @@ const EventManagementSection = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
-          <TabsTrigger value="past">Past Events</TabsTrigger>
+          <TabsTrigger value="ongoing">Ongoing Events</TabsTrigger>
+          <TabsTrigger value="completed">Completed Events</TabsTrigger>
+          <TabsTrigger value="cancelled">Cancelled Events</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upcoming" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-            {filteredEvents.length > 0 ? (
-              filteredEvents.map((event) => (
-                <Card key={event.id} className="flex flex-col">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{event.title}</CardTitle>
-                        <CardDescription>
-                          {format(new Date(event.date), "PP")} • {event.time}
-                        </CardDescription>
-                      </div>
-                      <Badge
-                        variant={
-                          event.type === "contest"
-                            ? "destructive"
-                            : event.type === "workshop"
-                            ? "outline"
-                            : "default"
-                        }
-                      >
-                        {event.type.charAt(0).toUpperCase() +
-                          event.type.slice(1)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {event.description}
-                    </p>
-                    <div className="mt-4 text-sm">
-                      <p>
-                        <strong>Venue:</strong> {event.venue}
-                      </p>
-                      {event.registration && (
-                        <p className="mt-1">
-                          <strong>Registration:</strong>{" "}
-                          {event.currentParticipants}/{event.maxParticipants}{" "}
-                          participants
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between border-t pt-4">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewEvent(event)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" /> View
-                      </Button>
-                      {event.registration && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewRegistrations(event)}
-                        >
-                          <Users className="h-4 w-4 mr-1" /> Registrations
-                        </Button>
-                      )}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditEvent(event)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => handleDeleteEvent(event.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8">
-                <p className="text-muted-foreground">
-                  No upcoming events found. Create a new event to get started.
-                </p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
+        <TabsContent value={activeTab} className="space-y-4">
+          {loading && (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">Loading events...</p>
+            </div>
+          )}
 
-        <TabsContent value="past" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-            {filteredEvents.length > 0 ? (
-              filteredEvents.map((event) => (
-                <Card key={event.id} className="flex flex-col">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{event.title}</CardTitle>
-                        <CardDescription>
-                          {format(new Date(event.date), "PP")} • {event.time}
-                        </CardDescription>
-                      </div>
-                      <Badge
-                        variant={
-                          event.type === "contest"
-                            ? "destructive"
-                            : event.type === "workshop"
-                            ? "outline"
-                            : "default"
-                        }
-                      >
-                        {event.type.charAt(0).toUpperCase() +
-                          event.type.slice(1)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {event.description}
-                    </p>
-                    <div className="mt-4 text-sm">
-                      <p>
-                        <strong>Venue:</strong> {event.venue}
-                      </p>
-                      {event.registration && (
-                        <p className="mt-1">
-                          <strong>Attendance:</strong>{" "}
-                          {event.currentParticipants} participants
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between border-t pt-4">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewEvent(event)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" /> View
-                      </Button>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => handleDeleteEvent(event.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8">
-                <p className="text-muted-foreground">No past events found.</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+          {error && !loading && (
+            <div className="text-center py-10">
+              <p className="text-red-500">{error}</p>
+            </div>
+          )}
 
-      {/* View Event Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          {selectedEvent && (
-            <>
-              <DialogHeader>
-                <div className="flex justify-between items-center">
-                  <DialogTitle>{selectedEvent.title}</DialogTitle>
-                  <Badge
-                    variant={
-                      selectedEvent.type === "contest"
-                        ? "destructive"
-                        : selectedEvent.type === "workshop"
-                        ? "outline"
-                        : "default"
-                    }
-                  >
-                    {selectedEvent.type.charAt(0).toUpperCase() +
-                      selectedEvent.type.slice(1)}
-                  </Badge>
-                </div>
-                <DialogDescription>
-                  {format(new Date(selectedEvent.date), "PP")} •{" "}
-                  {selectedEvent.time}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <div className="space-y-4">
+          {!loading && filteredEvents.length === 0 && (
+            <div className="text-center py-10 border rounded-lg bg-muted/20">
+              <p className="text-muted-foreground">
+                No {activeTab} events found. Create a new event to get started.
+              </p>
+            </div>
+          )}
+
+          {filteredEvents.map((event) => (
+            <Card key={event._id}>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row gap-2 justify-between items-start">
                   <div>
-                    <h3 className="text-sm font-medium">Description</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedEvent.description}
+                    <CardTitle className="text-xl">{event.title}</CardTitle>
+                    <CardDescription>
+                      {formatDate(event.date)} • {event.time} • {event.venue} •
+                      <Badge variant="outline" className="ml-2 capitalize">
+                        {event.type}
+                      </Badge>
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-2">
+                    {event.registrationOpen && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewRegistrations(event)}
+                      >
+                        <Users className="h-4 w-4 mr-2" /> Registrations
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{event.description}</p>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium">Registration</p>
+                    <p className="text-muted-foreground">
+                      {event.registrationOpen ? "Open" : "Closed"}
+                      {event.registrationDeadline && (
+                        <>
+                          {" "}
+                          • Deadline: {formatDate(event.registrationDeadline)}
+                        </>
+                      )}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  {event.maxParticipants > 0 && (
                     <div>
-                      <h3 className="text-sm font-medium">Venue</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {selectedEvent.venue}
+                      <p className="font-medium">Capacity</p>
+                      <p className="text-muted-foreground">
+                        {event.participants ? event.participants.length : 0} /{" "}
+                        {event.maxParticipants}
                       </p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium">Time</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {selectedEvent.time}
-                      </p>
-                    </div>
-                  </div>
-                  {selectedEvent.registration && (
-                    <div>
-                      <h3 className="text-sm font-medium">Registration</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs">
-                          {selectedEvent.currentParticipants}/
-                          {selectedEvent.maxParticipants} participants
-                        </div>
-                        {selectedEvent.currentParticipants >=
-                          selectedEvent.maxParticipants && (
-                          <div className="bg-amber-500/10 text-amber-500 rounded-full px-2 py-0.5 text-xs">
-                            Full
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
+                  <div>
+                    <p className="font-medium">Status</p>
+                    <p className="capitalize text-muted-foreground">
+                      {event.status}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                {selectedEvent.status === "upcoming" && (
+              </CardContent>
+              <CardFooter className="flex justify-end border-t pt-4">
+                <div className="flex space-x-2">
                   <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => handleEditEvent(selectedEvent)}
+                    onClick={() => handleEditEvent(event)}
                   >
-                    Edit Event
+                    <Edit className="h-4 w-4 mr-2" /> Edit
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setViewDialogOpen(false)}
-                >
-                  Close
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteEvent(event._id)}
+                  >
+                    <Trash className="h-4 w-4 mr-2" /> Delete
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Event Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -728,27 +647,24 @@ const EventManagementSection = () => {
                       Date
                     </Label>
                     <div className="col-span-3">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {format(new Date(selectedEvent.date), "PPP")}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={new Date(selectedEvent.date)}
-                            onSelect={(date) =>
-                              setSelectedEvent({ ...selectedEvent, date })
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Input
+                        id="edit-date"
+                        name="date"
+                        type="date"
+                        value={
+                          selectedEvent.date instanceof Date
+                            ? selectedEvent.date.toISOString().split("T")[0]
+                            : new Date(selectedEvent.date)
+                                .toISOString()
+                                .split("T")[0]
+                        }
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          setSelectedEvent((prev) => ({ ...prev, date }));
+                        }}
+                        className="w-full"
+                        required
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -781,63 +697,117 @@ const EventManagementSection = () => {
                     <Label htmlFor="edit-type" className="text-right">
                       Event Type
                     </Label>
-                    <select
+                    <Input
                       id="edit-type"
                       name="type"
                       value={selectedEvent.type}
                       onChange={handleEditChange}
-                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    >
-                      <option value="event">General Event</option>
-                      <option value="workshop">Workshop</option>
-                      <option value="contest">Contest</option>
-                    </select>
+                      placeholder="e.g., Workshop, Competition, Seminar"
+                      className="col-span-3"
+                      required
+                    />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-registration" className="text-right">
+                    <Label
+                      htmlFor="edit-registrationOpen"
+                      className="text-right"
+                    >
                       Registration
                     </Label>
                     <div className="col-span-3 flex items-center space-x-2">
                       <input
-                        id="edit-registration"
-                        name="registration"
+                        id="edit-registrationOpen"
+                        name="registrationOpen"
                         type="checkbox"
-                        checked={selectedEvent.registration}
-                        onChange={(e) =>
-                          setSelectedEvent({
-                            ...selectedEvent,
-                            registration: e.target.checked,
-                          })
-                        }
+                        checked={selectedEvent.registrationOpen}
+                        onChange={handleEditChange}
                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       <Label
-                        htmlFor="edit-registration"
+                        htmlFor="edit-registrationOpen"
                         className="text-sm font-normal"
                       >
                         Enable registration for this event
                       </Label>
                     </div>
                   </div>
-                  {selectedEvent.registration && (
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label
-                        htmlFor="edit-maxParticipants"
-                        className="text-right"
-                      >
-                        Max Participants
-                      </Label>
-                      <Input
-                        id="edit-maxParticipants"
-                        name="maxParticipants"
-                        type="number"
-                        value={selectedEvent.maxParticipants}
-                        onChange={handleEditChange}
-                        min={selectedEvent.currentParticipants}
-                        className="col-span-3"
-                      />
-                    </div>
+                  {selectedEvent.registrationOpen && (
+                    <>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label
+                          htmlFor="edit-registrationDeadline"
+                          className="text-right"
+                        >
+                          Registration Deadline
+                        </Label>
+                        <div className="col-span-3">
+                          <Input
+                            id="edit-registrationDeadline"
+                            name="registrationDeadline"
+                            type="date"
+                            value={
+                              selectedEvent.registrationDeadline instanceof Date
+                                ? selectedEvent.registrationDeadline
+                                    .toISOString()
+                                    .split("T")[0]
+                                : selectedEvent.registrationDeadline instanceof
+                                  String
+                                ? selectedEvent.registrationDeadline
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const date = new Date(e.target.value);
+                              setSelectedEvent((prev) => ({
+                                ...prev,
+                                registrationDeadline: date,
+                              }));
+                            }}
+                            className="w-full"
+                            min={new Date().toISOString().split("T")[0]}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label
+                          htmlFor="edit-maxParticipants"
+                          className="text-right"
+                        >
+                          Max Participants
+                        </Label>
+                        <Input
+                          id="edit-maxParticipants"
+                          name="maxParticipants"
+                          type="number"
+                          value={selectedEvent.maxParticipants}
+                          onChange={handleEditChange}
+                          min={
+                            selectedEvent.participants
+                              ? selectedEvent.participants.length
+                              : 0
+                          }
+                          className="col-span-3"
+                        />
+                      </div>
+                    </>
                   )}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-status" className="text-right">
+                      Status
+                    </Label>
+                    <select
+                      id="edit-status"
+                      name="status"
+                      value={selectedEvent.status}
+                      onChange={handleEditChange}
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="upcoming">Upcoming</option>
+                      <option value="ongoing">Ongoing</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button
@@ -866,42 +836,79 @@ const EventManagementSection = () => {
               <DialogHeader>
                 <DialogTitle>Event Registrations</DialogTitle>
                 <DialogDescription>
-                  Participants registered for {selectedEvent.title}
+                  {selectedEvent.title} - {formatDate(selectedEvent.date)}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Registration Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dummyParticipants.map((participant) => (
-                        <TableRow key={participant.id}>
-                          <TableCell>{participant.name}</TableCell>
-                          <TableCell>{participant.email}</TableCell>
-                          <TableCell>{participant.registrationDate}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold">
+                    Registered Participants
+                    {selectedEvent.maxParticipants > 0 && (
+                      <span className="text-muted-foreground ml-2">
+                        (
+                        {selectedEvent.participants
+                          ? selectedEvent.participants.length
+                          : 0}
+                        /{selectedEvent.maxParticipants})
+                      </span>
+                    )}
+                  </h3>
+                  {selectedEvent.registrationDeadline && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">
+                        Registration Deadline:{" "}
+                      </span>
+                      <span>
+                        {formatDate(selectedEvent.registrationDeadline)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {dummyParticipants.length} of{" "}
-                    {selectedEvent.currentParticipants} participants
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Export List
-                  </Button>
-                </div>
+
+                {selectedEvent.participants &&
+                selectedEvent.participants.length > 0 ? (
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="min-w-full divide-y divide-muted">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            User ID
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Registration Date
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-background divide-y divide-muted">
+                        {selectedEvent.participants.map(
+                          (participant, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                {participant}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">
+                                {/* Registration date would be included in a more detailed schema */}
+                                -
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center p-6 border rounded-md bg-muted/20">
+                    <p className="text-muted-foreground">
+                      No registrations yet.
+                    </p>
+                  </div>
+                )}
               </div>
               <DialogFooter>
-                <Button onClick={() => setRegistrationDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setRegistrationDialogOpen(false)}
+                >
                   Close
                 </Button>
               </DialogFooter>

@@ -1,11 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -15,168 +11,279 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Users, AlertCircle } from "lucide-react";
+import {
+  Clock,
+  Calendar,
+  Users,
+  AlertCircle,
+  ExternalLink,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { contestApi } from "@/services/api";
+import { format } from "date-fns";
 
 const ContestsPage = () => {
-  // Mock data for contests
-  const upcomingContests = [
-    {
-      id: 1,
-      title: "Weekly Algorithm Contest",
-      description: "Topic-focused contest on Dynamic Programming with 6 problems of varying difficulty levels.",
-      date: "May 25, 2024",
-      time: "3:00 PM - 6:00 PM",
-      duration: "3 hours",
-      participants: 48,
-      difficulty: "Medium",
-      registrationOpen: true,
-    },
-    {
-      id: 2,
-      title: "Monthly IUPC Style Contest",
-      description: "5-hour long contest with 10 problems covering various algorithms and data structures.",
-      date: "June 2, 2024",
-      time: "10:00 AM - 3:00 PM",
-      duration: "5 hours",
-      participants: 35,
-      difficulty: "Hard",
-      registrationOpen: true,
-    },
-    {
-      id: 3,
-      title: "Beginner's Contest",
-      description: "Friendly contest for beginners with basic problems on arrays, strings and basic algorithms.",
-      date: "June 10, 2024",
-      time: "4:00 PM - 6:00 PM",
-      duration: "2 hours",
-      participants: 62,
-      difficulty: "Easy",
-      registrationOpen: false,
-    },
-  ];
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [contests, setContests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { toast } = useToast();
 
-  const pastContests = [
-    {
-      id: 101,
-      title: "Graph Theory Special",
-      description: "Contest focusing on graph algorithms and techniques.",
-      date: "May 1, 2024",
-      participants: 55,
-      difficulty: "Medium",
-    },
-    {
-      id: 102,
-      title: "Spring Programming Competition",
-      description: "Seasonal programming contest with varied problem set.",
-      date: "April 15, 2024",
-      participants: 72,
-      difficulty: "Medium-Hard",
-    },
-    {
-      id: 103,
-      title: "Data Structures Challenge",
-      description: "Contest focusing on advanced data structures and their applications.",
-      date: "March 28, 2024",
-      participants: 40,
-      difficulty: "Hard",
-    },
-  ];
+  useEffect(() => {
+    const fetchContests = async () => {
+      try {
+        setLoading(true);
+        const response = await contestApi.getAll({
+          status: activeTab,
+        });
+        setContests(response.data.contests || []);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching contests:", err);
+        setError("Failed to load contests. Please try again later.");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load contests. Please try again later.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContests();
+  }, [activeTab, toast]);
+
+  const handleRegister = async (contestId) => {
+    try {
+      await contestApi.register(contestId);
+      toast({
+        title: "Success",
+        description: "You have successfully registered for this contest.",
+      });
+
+      // Refresh contests to update registration status
+      const response = await contestApi.getAll({
+        status: activeTab,
+      });
+      setContests(response.data.contests || []);
+    } catch (err) {
+      console.error("Error registering for contest:", err);
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description:
+          err.response?.data?.message || "Failed to register for this contest.",
+      });
+    }
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      return format(new Date(dateString), "MMMM d, yyyy");
+    } catch (e) {
+      return dateString;
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-10">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">Contests</h1>
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">
+          Contests
+        </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Participate in our programming competitions to enhance your skills and compete with fellow programmers
+          Participate in our programming competitions to enhance your skills and
+          compete with fellow programmers
         </p>
       </div>
 
-      <Tabs defaultValue="upcoming" className="w-full">
+      <Tabs
+        defaultValue="upcoming"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8">
           <TabsTrigger value="upcoming">Upcoming Contests</TabsTrigger>
-          <TabsTrigger value="past">Past Contests</TabsTrigger>
+          <TabsTrigger value="completed">Past Contests</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upcoming">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {upcomingContests.map((contest) => (
-              <Card key={contest.id} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle>{contest.title}</CardTitle>
-                    <Badge variant={contest.difficulty === "Easy" ? "secondary" : contest.difficulty === "Medium" ? "default" : "destructive"}>
-                      {contest.difficulty}
-                    </Badge>
-                  </div>
-                  <CardDescription>{contest.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{contest.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{contest.time} ({contest.duration})</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{contest.participants} participants registered</span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  {contest.registrationOpen ? (
-                    <Button className="w-full">Register Now</Button>
-                  ) : (
-                    <Button variant="outline" className="w-full" disabled>
-                      <AlertCircle className="mr-2 h-4 w-4" />
-                      Registration Opens Soon
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">Loading contests...</p>
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="past">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {pastContests.map((contest) => (
-              <Card key={contest.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle>{contest.title}</CardTitle>
-                    <Badge variant="outline">{contest.difficulty}</Badge>
-                  </div>
-                  <CardDescription>{contest.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{contest.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{contest.participants} participants</span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">View Results</Button>
-                </CardFooter>
-              </Card>
-            ))}
+        {error && !loading && (
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">{error}</p>
           </div>
-        </TabsContent>
+        )}
+
+        {!loading && !error && (
+          <>
+            <TabsContent value="upcoming">
+              {contests.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">
+                    No upcoming contests found.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {contests.map((contest) => (
+                    <Card key={contest._id} className="flex flex-col">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <CardTitle>{contest.title}</CardTitle>
+                          {contest.difficultyLevel && (
+                            <Badge
+                              variant={
+                                contest.difficultyLevel
+                                  .toLowerCase()
+                                  .includes("easy")
+                                  ? "secondary"
+                                  : contest.difficultyLevel
+                                      .toLowerCase()
+                                      .includes("medium")
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {contest.difficultyLevel}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription>{contest.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>{formatDate(contest.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              {contest.time} ({contest.duration} minutes)
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              {contest.participants?.length || 0} participants
+                              registered
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            <a
+                              href={contest.contestLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {contest.platform}
+                            </a>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        {contest.registrationStatus ? (
+                          <Button
+                            className="w-full"
+                            onClick={() => handleRegister(contest._id)}
+                          >
+                            Register Now
+                          </Button>
+                        ) : (
+                          <Button variant="outline" className="w-full" disabled>
+                            <AlertCircle className="mr-2 h-4 w-4" />
+                            Registration Closed
+                          </Button>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="completed">
+              {contests.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">
+                    No past contests found.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {contests.map((contest) => (
+                    <Card key={contest._id}>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <CardTitle>{contest.title}</CardTitle>
+                          {contest.difficultyLevel && (
+                            <Badge variant="outline">
+                              {contest.difficultyLevel}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription>{contest.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>{formatDate(contest.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              {contest.participants?.length || 0} participants
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            <a
+                              href={contest.contestLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {contest.platform}
+                            </a>
+                          </div>
+                        </div>
+                      </CardContent>
+                      {contest.resultsData?.problems?.length > 0 && (
+                        <CardFooter>
+                          <Link
+                            to={`/contests/${contest._id}`}
+                            className="w-full"
+                          >
+                            <Button variant="outline" className="w-full">
+                              View Results
+                            </Button>
+                          </Link>
+                        </CardFooter>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </>
+        )}
       </Tabs>
 
       <div className="mt-16 rounded-xl bg-primary/5 p-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Host a Contest</h2>
         <p className="text-muted-foreground mb-6">
-          Are you interested in hosting a problem-setting contest or have ideas for new contest formats?
+          Are you interested in hosting a problem-setting contest or have ideas
+          for new contest formats?
         </p>
         <Button asChild>
           <Link to="/contact">Contact Us</Link>
