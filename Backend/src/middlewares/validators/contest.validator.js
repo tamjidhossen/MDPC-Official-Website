@@ -60,18 +60,6 @@ export const createContestValidator = [
     .isString()
     .withMessage("Platform must be a string"),
 
-  body("registrationDeadline")
-    .notEmpty()
-    .withMessage("Registration deadline is required")
-    .isISO8601()
-    .withMessage("Registration deadline must be a valid date format")
-    .custom((value, { req }) => {
-      if (new Date(value) >= new Date(req.body.date)) {
-        throw new Error("Registration deadline must be before contest date");
-      }
-      return true;
-    }),
-
   body("contestUrl")
     .optional()
     .isURL()
@@ -121,11 +109,6 @@ export const updateContestValidator = [
     .optional()
     .isString()
     .withMessage("Platform must be a string"),
-
-  body("registrationDeadline")
-    .optional()
-    .isISO8601()
-    .withMessage("Registration deadline must be a valid date format"),
 
   body("contestUrl")
     .optional()
