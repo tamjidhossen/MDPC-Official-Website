@@ -76,24 +76,6 @@ export const createResourceValidator = [
       }
     }),
 
-  body("tags")
-    .optional()
-    .custom((value) => {
-      try {
-        const tags = typeof value === "string" ? JSON.parse(value) : value;
-        if (!Array.isArray(tags)) {
-          throw new Error("Tags must be an array");
-        }
-        tags.forEach((tag) => {
-          if (typeof tag !== "string") {
-            throw new Error("Each tag must be a string");
-          }
-        });
-        return true;
-      } catch (e) {
-        throw new Error(e.message || "Invalid format for tags");
-      }
-    }),
 
   validate,
 ];
@@ -149,25 +131,6 @@ export const updateResourceValidator = [
         return true;
       } catch (e) {
         throw new Error(e.message || "Invalid format for externalLinks");
-      }
-    }),
-
-  body("tags")
-    .optional()
-    .custom((value) => {
-      try {
-        const tags = typeof value === "string" ? JSON.parse(value) : value;
-        if (!Array.isArray(tags)) {
-          throw new Error("Tags must be an array");
-        }
-        tags.forEach((tag) => {
-          if (typeof tag !== "string") {
-            throw new Error("Each tag must be a string");
-          }
-        });
-        return true;
-      } catch (e) {
-        throw new Error(e.message || "Invalid format for tags");
       }
     }),
 
