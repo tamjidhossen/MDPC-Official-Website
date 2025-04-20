@@ -49,6 +49,11 @@ const DashboardSidebar = ({
       icon: <FileText className="h-5 w-5" />,
     },
     {
+      id: "resources",
+      name: "Resource Management",
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
       id: "members",
       name: "Member Database",
       icon: <Users className="h-5 w-5" />,
@@ -62,12 +67,6 @@ const DashboardSidebar = ({
       id: "contests",
       name: "Contest Management",
       icon: <Trophy className="h-5 w-5" />,
-    },
-    {
-      // Added Resource Management
-      id: "resources",
-      name: "Resource Management",
-      icon: <BookOpen className="h-5 w-5" />,
     },
     {
       id: "registration",

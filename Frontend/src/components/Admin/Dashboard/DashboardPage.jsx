@@ -21,14 +21,14 @@ const DashboardPage = () => {
         return <OverviewSection />;
       case "blogs":
         return <BlogManagementSection />;
+      case "resources": 
+        return <ResourceManagementSection />;
       case "members":
         return <MemberDatabaseSection />;
       case "events":
         return <EventManagementSection />;
       case "contests":
         return <ContestManagementSection />;
-      case "resources": // Add case for resources
-        return <ResourceManagementSection />;
       case "registration":
         return <RegistrationSettingsSection />;
       case "admins":

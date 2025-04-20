@@ -9,12 +9,10 @@ import EventsPage from "./components/Events/EventsPage";
 import LoginPage from "./components/User/LoginPage";
 import RegisterPage from "./components/User/RegisterPage";
 import DashboardPage from "./components/User/Dashboard/DashboardPage";
-import DynamicProgrammingResource from "./components/Resources/DynamicProgrammingResource";
-import CPRoadmapResource from "./components/Resources/CPRoadmapResource";
 import BlogDetailPage from "./components/Blogs/BlogDetailPage";
 import ResourceDetailPage from "./components/Resources/ResourceDetailPage";
 import JoinPage from "./components/Join/JoinPage";
-import ErrorDisplay from "./components/ErrorPages/ErrorDisplay"; // Import the error display component
+import ErrorDisplay from "./components/ErrorPages/ErrorDisplay"; 
 
 // Admin imports
 import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
@@ -46,11 +44,6 @@ const AppWithRoutes = () => {
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="contests" element={<ContestsPage />} />
           <Route path="resources" element={<ResourcesPage />} />
-          <Route
-            path="resources/dynamic-programming"
-            element={<DynamicProgrammingResource />}
-          />
-          <Route path="resources/cp-roadmap" element={<CPRoadmapResource />} />
           <Route path="resources/blog/:id" element={<BlogDetailPage />} />
           <Route path="resources/:id" element={<ResourceDetailPage />} />
           <Route path="events" element={<EventsPage />} />
