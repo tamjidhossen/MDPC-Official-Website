@@ -61,14 +61,6 @@ export const createEvent = asyncHandler(async (req, res) => {
     }
   }
 
-  // Validate maxParticipants if provided
-  if (maxParticipants !== undefined) {
-    const maxParticipantsNum = Number(maxParticipants);
-    if (isNaN(maxParticipantsNum) || maxParticipantsNum <= 0) {
-      throw new ApiError(400, "Maximum participants must be a positive number");
-    }
-  }
-
   // Create event object
   const event = await Event.create({
     title: title.trim(),
@@ -237,22 +229,6 @@ export const updateEvent = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Description cannot be empty");
   }
 
-  if (venue && venue.trim() === "") {
-    throw new ApiError(400, "Venue cannot be empty");
-  }
-
-  if (time && time.trim() === "") {
-    throw new ApiError(400, "Time cannot be empty");
-  }
-
-  // Validate event type if provided
-  if (type && !Object.values(EventTypes).includes(type)) {
-    throw new ApiError(
-      400,
-      `Event type must be one of: ${Object.values(EventTypes).join(", ")}`
-    );
-  }
-
   // Validate date format if provided
   if (date && !Date.parse(date)) {
     throw new ApiError(400, "Invalid date format");
@@ -270,22 +246,6 @@ export const updateEvent = asyncHandler(async (req, res) => {
       throw new ApiError(
         400,
         "Registration deadline must be before event date"
-      );
-    }
-  }
-
-  // Validate maxParticipants if provided
-  if (maxParticipants !== undefined) {
-    const maxParticipantsNum = Number(maxParticipants);
-    if (isNaN(maxParticipantsNum) || maxParticipantsNum <= 0) {
-      throw new ApiError(400, "Maximum participants must be a positive number");
-    }
-
-    // Ensure maxParticipants is not less than current participant count
-    if (maxParticipantsNum < event.participants.length) {
-      throw new ApiError(
-        400,
-        "Maximum participants cannot be less than current number of participants"
       );
     }
   }

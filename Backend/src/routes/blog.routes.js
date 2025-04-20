@@ -23,8 +23,8 @@ import {
 
 const router = Router();
 
-// Public routes
-router.get("/", verifyJWT, getAllBlogs); // Add verifyJWT here
+// Admin routes
+router.get("/", verifyJWT, getAllBlogs); 
 
 // Protected routes for current user - this must come before /:id
 router.get("/my-blogs", verifyJWT, getMyBlogs);

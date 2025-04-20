@@ -1,5 +1,4 @@
 import { body, param, validationResult } from "express-validator";
-import { EventTypes } from "../../constants.js";
 
 // Reuse validate middleware
 export const validate = (req, res, next) => {
