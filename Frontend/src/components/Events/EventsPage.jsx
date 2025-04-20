@@ -163,15 +163,7 @@ const EventsPage = () => {
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <span>{event.venue}</span>
                       </div>
-                      {event.maxParticipants && (
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {event.participants?.length || 0}/
-                            {event.maxParticipants} participants
-                          </span>
-                        </div>
-                      )}
+                      
                     </div>
                   </CardContent>
                   <CardFooter>
@@ -191,9 +183,7 @@ const EventsPage = () => {
                             : "Register Now"}
                         </Button>
                       ) : (
-                        <Button variant="outline" className="w-full" disabled>
-                          Registration Closed
-                        </Button>
+                        <></>
                       )
                     ) : (
                       <Button variant="outline" className="w-full" asChild>
