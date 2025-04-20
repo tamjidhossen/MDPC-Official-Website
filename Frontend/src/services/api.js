@@ -167,8 +167,16 @@ export const userApi = {
 
 // Blog API endpoints
 export const blogApi = {
+  
+  getAllApproved: async () => {
+    console.log("called getAllApproved");
+    const response = await apiClient.get("/blogs/all-approved");
+    return response.data;
+  },
+
   // Get all blogs with filters
   getAll: async (params = {}) => {
+    console.log("called getAll");
     const response = await apiClient.get("/blogs", { params });
     return response.data;
   },

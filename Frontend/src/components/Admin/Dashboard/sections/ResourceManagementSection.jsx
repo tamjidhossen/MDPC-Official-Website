@@ -477,7 +477,7 @@ const ResourceManagementSection = () => {
               <Badge className="ml-2">{resources.all.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="beginner" disabled={loading.fetching}>
+          {/* <TabsTrigger value="beginner" disabled={loading.fetching}>
             Beginner{" "}
             {!loading.fetching && (
               <Badge className="ml-2">{resources.beginner.length}</Badge>
@@ -494,14 +494,14 @@ const ResourceManagementSection = () => {
             {!loading.fetching && (
               <Badge className="ml-2">{resources.advanced.length}</Badge>
             )}
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="all" className="mt-6">
           {renderTabContent("all")}
         </TabsContent>
 
-        <TabsContent value="beginner" className="mt-6">
+        {/* <TabsContent value="beginner" className="mt-6">
           {renderTabContent("beginner")}
         </TabsContent>
 
@@ -511,7 +511,7 @@ const ResourceManagementSection = () => {
 
         <TabsContent value="advanced" className="mt-6">
           {renderTabContent("advanced")}
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
 
       {/* Create/Edit Resource Section */}

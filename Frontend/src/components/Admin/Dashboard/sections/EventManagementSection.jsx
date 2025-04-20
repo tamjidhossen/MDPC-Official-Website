@@ -343,6 +343,7 @@ const EventManagementSection = () => {
                       min={new Date().toISOString().split("T")[0]}
                       required
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -442,6 +443,7 @@ const EventManagementSection = () => {
                           min={new Date().toISOString().split("T")[0]}
                           required
                         />
+                        <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -665,6 +667,7 @@ const EventManagementSection = () => {
                         className="w-full"
                         required
                       />
+                      <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -766,6 +769,7 @@ const EventManagementSection = () => {
                             min={new Date().toISOString().split("T")[0]}
                             required
                           />
+                          <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">

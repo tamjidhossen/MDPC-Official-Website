@@ -416,29 +416,23 @@ const ContestManagementSection = () => {
                     Date
                   </Label>
                   <div className="col-span-3">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newContest.date
-                            ? format(newContest.date, "PPP")
-                            : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={newContest.date}
-                          onSelect={(date) =>
-                            setNewContest({ ...newContest, date })
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="date"
+                      value={
+                        newContest.date instanceof Date
+                          ? newContest.date.toISOString().split("T")[0]
+                          : newContest.date
+                      }
+                      onChange={(e) => {
+                        const date = new Date(e.target.value);
+                        setNewContest({ ...newContest, date });
+                      }}
+                      className="w-full"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -528,39 +522,26 @@ const ContestManagementSection = () => {
                       Registration Deadline
                     </Label>
                     <div className="col-span-3">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {newContest.registrationDeadline
-                              ? format(
-                                  new Date(newContest.registrationDeadline),
-                                  "PPP"
-                                )
-                              : "Select deadline"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={
-                              newContest.registrationDeadline
-                                ? new Date(newContest.registrationDeadline)
-                                : undefined
-                            }
-                            onSelect={(date) =>
-                              setNewContest({
-                                ...newContest,
-                                registrationDeadline: date,
-                              })
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Input
+                        id="registrationDeadline"
+                        name="registrationDeadline"
+                        type="date"
+                        value={
+                          newContest.registrationDeadline instanceof Date
+                            ? newContest.registrationDeadline.toISOString().split("T")[0]
+                            : newContest.registrationDeadline
+                        }
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          setNewContest({
+                            ...newContest,
+                            registrationDeadline: date,
+                          });
+                        }}
+                        className="w-full"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                     </div>
                   </div>
                 )}
@@ -774,33 +755,23 @@ const ContestManagementSection = () => {
                       Date
                     </Label>
                     <div className="col-span-3">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedContest.date instanceof Date
-                              ? format(selectedContest.date, "PPP")
-                              : format(new Date(selectedContest.date), "PPP")}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={
-                              selectedContest.date instanceof Date
-                                ? selectedContest.date
-                                : new Date(selectedContest.date)
-                            }
-                            onSelect={(date) =>
-                              setSelectedContest({ ...selectedContest, date })
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Input
+                        id="edit-date"
+                        name="date"
+                        type="date"
+                        value={
+                          selectedContest.date instanceof Date
+                            ? selectedContest.date.toISOString().split("T")[0]
+                            : new Date(selectedContest.date).toISOString().split("T")[0]
+                        }
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          setSelectedContest({ ...selectedContest, date });
+                        }}
+                        className="w-full"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -910,52 +881,28 @@ const ContestManagementSection = () => {
                         Registration Deadline
                       </Label>
                       <div className="col-span-3">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start text-left font-normal"
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {selectedContest.registrationDeadline
-                                ? selectedContest.registrationDeadline instanceof
-                                  Date
-                                  ? format(
-                                      selectedContest.registrationDeadline,
-                                      "PPP"
-                                    )
-                                  : format(
-                                      new Date(
-                                        selectedContest.registrationDeadline
-                                      ),
-                                      "PPP"
-                                    )
-                                : "Select deadline"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={
-                                selectedContest.registrationDeadline
-                                  ? selectedContest.registrationDeadline instanceof
-                                    Date
-                                    ? selectedContest.registrationDeadline
-                                    : new Date(
-                                        selectedContest.registrationDeadline
-                                      )
-                                  : undefined
-                              }
-                              onSelect={(date) =>
-                                setSelectedContest({
-                                  ...selectedContest,
-                                  registrationDeadline: date,
-                                })
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <Input
+                          id="edit-registrationDeadline"
+                          name="registrationDeadline"
+                          type="date"
+                          value={
+                            selectedContest.registrationDeadline instanceof Date
+                              ? selectedContest.registrationDeadline.toISOString().split("T")[0]
+                              : selectedContest.registrationDeadline
+                                ? new Date(selectedContest.registrationDeadline).toISOString().split("T")[0]
+                                : ""
+                          }
+                          onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            setSelectedContest({
+                              ...selectedContest, 
+                              registrationDeadline: date
+                            });
+                          }}
+                          className="w-full"
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Format: DD/MM/YYYY</p>
                       </div>
                     </div>
                   )}

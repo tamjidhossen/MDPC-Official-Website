@@ -37,10 +37,9 @@ const BlogsPage = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await blogApi.getAll({
+        const response = await blogApi.getAllApproved({
           page: pagination.page,
           limit: pagination.limit,
-          status: "approved", // Only fetch approved blogs
           search: searchQuery || undefined,
           category: category !== "all" ? category : undefined,
         });
