@@ -84,28 +84,58 @@ const ResourcesPage = () => {
           level: selectedLevel ? selectedLevel.toLowerCase() : undefined,
         };
 
+        console.log("Fetching resources with params:", params);
         const response = await resourceApi.getAll(params);
+        console.log("Resource API Response:", response);
 
+        // Check for different possible response structures
+        let resourcesData = [];
         if (response.data?.resources) {
-          setResources(response.data.resources);
+          resourcesData = response.data.resources;
+        } else if (Array.isArray(response.data)) {
+          resourcesData = response.data;
+        } else if (response.data?.data?.resources) {
+          // Handle case where data might be nested (common in some API response structures)
+          resourcesData = response.data.data.resources;
+        }
 
-          // Set categories and levels for filters
-          if (response.data.metadata) {
-            if (response.data.metadata.categories) {
-              setResourceCategories(response.data.metadata.categories);
-            }
+        console.log("Extracted resources data:", resourcesData);
+        setResources(resourcesData);
 
-            if (response.data.metadata.levels) {
-              setResourceLevels(response.data.metadata.levels);
-            }
+        // Set categories and levels for filters
+        if (response.data?.metadata) {
+          if (response.data.metadata.categories) {
+            setResourceCategories(response.data.metadata.categories);
           }
 
-          // Set pagination data
-          if (response.data.pagination) {
-            setResourcesPagination(response.data.pagination);
+          if (response.data.metadata.levels) {
+            setResourceLevels(response.data.metadata.levels);
           }
-        } else {
-          setResources([]);
+        } else if (response.data?.data?.metadata) {
+          // Handle nested metadata
+          if (response.data.data.metadata.categories) {
+            setResourceCategories(response.data.data.metadata.categories);
+          }
+
+          if (response.data.data.metadata.levels) {
+            setResourceLevels(response.data.data.metadata.levels);
+          }
+        }
+
+        // Set pagination data
+        let paginationData = null;
+        if (response.data?.pagination) {
+          paginationData = response.data.pagination;
+        } else if (response.data?.data?.pagination) {
+          paginationData = response.data.data.pagination;
+        }
+
+        if (paginationData) {
+          setResourcesPagination(paginationData);
+        }
+
+        if (resourcesData.length === 0) {
+          console.log("No resources found in the response");
         }
       } catch (err) {
         console.error("Error fetching resources:", err);
@@ -281,24 +311,6 @@ const ResourcesPage = () => {
               </div>
 
               <div className="flex flex-wrap w-full md:w-auto gap-4">
-                {resourceCategories.length > 0 && (
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
-                      {resourceCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
 
                 {resourceLevels.length > 0 && (
                   <Select
@@ -309,7 +321,7 @@ const ResourcesPage = () => {
                       <SelectValue placeholder="Select Level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Levels</SelectItem>
+                      <SelectItem value="all">All Levels</SelectItem>
                       {resourceLevels.map((level) => (
                         <SelectItem key={level} value={level}>
                           {level}

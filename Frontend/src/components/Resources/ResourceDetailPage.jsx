@@ -39,8 +39,21 @@ const ResourceDetailPage = () => {
 
       try {
         const response = await resourceApi.getById(id);
-        if (response.data && response.data.resource) {
+        console.log("Resource API Response:", response);
+
+        // Handle different possible API response structures
+        if (response.data?.resource) {
+          // Standard response structure
           setResource(response.data.resource);
+        } else if (response.data?.data?.resource) {
+          // Nested data structure
+          setResource(response.data.data.resource);
+        } else if (response.resource) {
+          // Direct resource object
+          setResource(response.resource);
+        } else if (response.data) {
+          // Direct data object that might be the resource
+          setResource(response.data);
         } else {
           setError("Resource not found");
         }
