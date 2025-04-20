@@ -7,6 +7,7 @@ import {
   deleteBlog,
   updateBlogStatus,
   getMyBlogs,
+  getAllApprovedBlogs,
 } from "../controllers/blog.controller.js";
 import {
   verifyJWT,
@@ -23,8 +24,11 @@ import {
 
 const router = Router();
 
+// public routes
+router.get("/all-approved", getAllApprovedBlogs);
+
 // Admin routes
-router.get("/", verifyJWT, getAllBlogs); 
+router.get("/", verifyJWT, getAllBlogs);
 
 // Protected routes for current user - this must come before /:id
 router.get("/my-blogs", verifyJWT, getMyBlogs);

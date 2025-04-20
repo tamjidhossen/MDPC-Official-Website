@@ -76,7 +76,7 @@ export const createBlog = asyncHandler(async (req, res) => {
 
 // @desc    Get all blog posts with optional filtering
 // @route   GET /api/v1/blogs
-// @access  Public
+// @access  Admin
 export const getAllBlogs = asyncHandler(async (req, res) => {
   // Set up pagination
   const page = parseInt(req.query.page, 10) || 1;
@@ -94,6 +94,76 @@ export const getAllBlogs = asyncHandler(async (req, res) => {
   } else {
     filter.status = "approved";
   }
+
+  // Filter by category
+  if (req.query.category) {
+    filter.category = req.query.category;
+  }
+
+  // Filter by tag
+  if (req.query.tag) {
+    filter.tags = { $in: [req.query.tag] };
+  }
+
+  // Filter by author
+  if (req.query.author) {
+    filter.author = req.query.author;
+  }
+
+  // Search in title or content
+  if (req.query.search) {
+    filter.$or = [
+      { title: { $regex: req.query.search, $options: "i" } },
+      { content: { $regex: req.query.search, $options: "i" } },
+    ];
+  }
+
+  // Execute query
+  const blogs = await Blog.find(filter)
+    .populate({
+      path: "author",
+      select: "name email",
+    })
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  // Get total count
+  const totalBlogs = await Blog.countDocuments(filter);
+
+  // Return blogs with pagination info
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        blogs,
+        pagination: {
+          page,
+          limit,
+          totalBlogs,
+          totalPages: Math.ceil(totalBlogs / limit),
+        },
+      },
+      "Blogs fetched successfully"
+    )
+  );
+});
+
+
+// @desc    Get all approved blog posts with optional filtering
+// @route   GET /api/v1/blogs
+// @access  Public
+export const getAllApprovedBlogs = asyncHandler(async (req, res) => {
+  // Set up pagination
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  // Set up filtering
+  const filter = {};
+
+
+  filter.status = "approved";
 
   // Filter by category
   if (req.query.category) {
