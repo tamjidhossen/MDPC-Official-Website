@@ -1,0 +1,21 @@
+=== Submission ID: 027478e9-7142-4e76-95ab-61f67404bd13 ===
+[Code]
+#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    int a,b;
+    while(cin>>a){
+        cout<<a<<"\n";
+    }
+    return 0;
+}
+
+[Input]
+30 5
+
+[Expected Output]
+35
+
+---
