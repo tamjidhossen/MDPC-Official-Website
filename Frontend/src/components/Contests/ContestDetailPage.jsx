@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { contestApi } from "@/services/api";
 import { format } from "date-fns";
+import { useAuth } from "@/context/AuthContext";
 import {
   Calendar,
   Clock,
@@ -24,12 +25,29 @@ const ContestDetailPage = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [isRegistered, setIsRegistered] = useState(false);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+
+  // Get user ID (either authenticated user ID or temporary ID for non-logged in users)
+  const getUserId = () => {
+    if (isAuthenticated && user) {
+      return user._id; // Use the authenticated user's ID
+    }
+
+    // Fallback to temporary ID for non-authenticated users
+    let tempUserId = localStorage.getItem("tempUserId");
+    if (!tempUserId) {
+      tempUserId = "user_" + Date.now();
+      localStorage.setItem("tempUserId", tempUserId);
+    }
+    return tempUserId;
+  };
 
   useEffect(() => {
     const fetchContestDetails = async () => {
       try {
         setLoading(true);
-        const response = await contestApi.getById(id);
+        const userId = getUserId();
+        const response = await contestApi.getById(id, { userId });
         setContest(response.data.contest);
         setIsRegistered(response.data.isRegistered);
       } catch (err) {
@@ -53,14 +71,15 @@ const ContestDetailPage = () => {
 
   const handleRegister = async () => {
     try {
-      await contestApi.register(id);
+      const userId = getUserId();
+      await contestApi.register(id, { userId });
       toast({
         title: "Success",
         description: "You have successfully registered for this contest.",
       });
 
       // Refresh contest details to update registration status
-      const response = await contestApi.getById(id);
+      const response = await contestApi.getById(id, { userId });
       setContest(response.data.contest);
       setIsRegistered(response.data.isRegistered);
     } catch (err) {

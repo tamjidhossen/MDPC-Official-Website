@@ -17,12 +17,6 @@ const ContestLobbyPage = () => {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [lobbyData, setLobbyData] = useState(null);
-  const [activeTab, setActiveTab] = useState("problems");
-  const [registering, setRegistering] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
-
   // Get user ID (either authenticated user ID or temporary ID for non-logged in users)
   const getUserId = () => {
     if (isAuthenticated() && user) {
@@ -38,23 +32,56 @@ const ContestLobbyPage = () => {
     return tempUserId;
   };
 
+  // Registration status persistence functions
+  const getRegistrationKey = () => `contest_${id}_registered_${getUserId()}`;
+
+  const saveRegistrationStatus = (status) => {
+    localStorage.setItem(getRegistrationKey(), status ? "true" : "false");
+  };
+
+  const getStoredRegistrationStatus = () => {
+    return localStorage.getItem(getRegistrationKey()) === "true";
+  };
+
+  const [loading, setLoading] = useState(true);
+  const [lobbyData, setLobbyData] = useState(null);
+  const [activeTab, setActiveTab] = useState("problems");
+  const [registering, setRegistering] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(() => {
+    return getStoredRegistrationStatus();
+  });
+
   // Fetch contest lobby data
   useEffect(() => {
     const fetchLobbyData = async () => {
       try {
         setLoading(true);
+        const userId = getUserId();
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/contests/${id}/lobby`
+          `${import.meta.env.VITE_API_URL}/contests/${id}/lobby`,
+          {
+            params: {
+              userId,
+            },
+          }
         );
 
         setLobbyData(response.data.data);
 
-        // Also fetch registration status
+        // Also fetch registration status with userId to properly check if registered
         const contestResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/contests/${id}`
+          `${import.meta.env.VITE_API_URL}/contests/${id}`,
+          {
+            params: {
+              userId,
+            },
+          }
         );
 
-        setIsRegistered(contestResponse.data.isRegistered);
+        // Update registration status from server and save to localStorage
+        const serverIsRegistered = contestResponse.data.isRegistered;
+        setIsRegistered(serverIsRegistered);
+        saveRegistrationStatus(serverIsRegistered);
       } catch (error) {
         console.error("Error fetching lobby data:", error);
         toast({
@@ -89,7 +116,21 @@ const ContestLobbyPage = () => {
         description: "You have been registered for this contest",
       });
 
+      // Set local state and persist to localStorage
       setIsRegistered(true);
+      saveRegistrationStatus(true);
+
+      // Refresh the lobby data to get updated registration status and participant count
+      const userId = getUserId();
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/contests/${id}/lobby`,
+        {
+          params: {
+            userId,
+          },
+        }
+      );
+      setLobbyData(response.data.data);
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -217,7 +258,9 @@ const ContestLobbyPage = () => {
           </div>
         ) : (
           <div className="mt-8 text-center p-8 bg-muted rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Contest has not started yet</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              Contest has not started yet
+            </h3>
             <p>Problems will be available once the contest begins.</p>
           </div>
         )}
