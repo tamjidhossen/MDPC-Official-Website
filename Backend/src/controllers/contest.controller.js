@@ -397,31 +397,28 @@ export const registerForContest = asyncHandler(async (req, res) => {
     );
 
     if (isAlreadyRegistered) {
-      throw new ApiError(400, "You are already registered for this contest");
+      // Return a 200 status with a message instead of throwing an error
+      // This makes the UI experience better as the user can see they're already registered
+      return res
+        .status(200)
+        .json(new ApiResponse(200, { isRegistered: true }, "You are already registered for this contest"));
     }
+  } else {
+    // If no userId is provided, we cannot check for existing registration
+    throw new ApiError(400, "User ID is required for registration");
   }
 
-  // Add participant with minimal validation
-  if (contest.contestType === ContestTypes.INDIVIDUAL) {
-    // Individual registration
-    contest.participants.push({
-      user: userId || new mongoose.Types.ObjectId(),
-    });
-  } else {
-    // Team registration
-    contest.participants.push({
-      user: userId || new mongoose.Types.ObjectId(),
-      teamName: teamName || "Team " + Date.now(),
-      teamMembers: teamMembers || [],
-    });
-  }
+  // Add participant (individual registration only)
+  contest.participants.push({
+    user: userId,
+  });
 
   // Save updated contest
   await contest.save();
 
   res
     .status(200)
-    .json(new ApiResponse(200, {}, "Registered for contest successfully"));
+    .json(new ApiResponse(200, { isRegistered: true }, "Registered for contest successfully"));
 });
 
 // @desc    Add contest results
@@ -493,8 +490,28 @@ export const getContestLobby = asyncHandler(async (req, res) => {
   }
 
   // Calculate contest timing information
+  // Parse the contest's date and time
   const now = new Date();
+  
+  // Create start time by combining date and time
   const startTime = new Date(contest.date);
+  if (contest.time) {
+    // Parse time in format "HH:MM AM/PM" (e.g., "2:30 PM")
+    const timeMatch = contest.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      const minutes = parseInt(timeMatch[2]);
+      const period = timeMatch[3].toUpperCase();
+      
+      // Convert to 24-hour format
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      
+      startTime.setHours(hours, minutes, 0, 0);
+    }
+  }
+  
+  // Calculate end time by adding duration (in minutes) to start time
   const endTime = new Date(
     startTime.getTime() + parseInt(contest.duration) * 60000
   );
