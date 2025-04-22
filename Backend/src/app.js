@@ -59,7 +59,30 @@ app.use((req, res, next) => {
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Parse CORS_ORIGIN as JSON if it starts with [
+      let allowedOrigins = process.env.CORS_ORIGIN;
+      if (allowedOrigins && allowedOrigins.startsWith("[")) {
+        try {
+          allowedOrigins = JSON.parse(allowedOrigins);
+        } catch (e) {
+          console.error("Error parsing CORS_ORIGIN:", e);
+          allowedOrigins = "http://localhost:5173"; // Fallback
+        }
+      }
+
+      // Handle array of origins or single origin
+      const allowedOriginsArray = Array.isArray(allowedOrigins)
+        ? allowedOrigins
+        : [allowedOrigins || "http://localhost:5173"];
+
+      // Check if origin is allowed or if it's null (like a direct browser request)
+      if (!origin || allowedOriginsArray.includes(origin)) {
+        callback(null, origin);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     exposedHeaders: ["Content-Type", "Authorization"],
