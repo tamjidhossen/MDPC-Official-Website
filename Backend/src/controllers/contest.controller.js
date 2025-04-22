@@ -5,6 +5,10 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ContestTypes } from "../constants.js";
 import { getFilePath } from "../utils/fileUpload.js";
+import {
+  hasContestEnded,
+  updateContestsStatus,
+} from "../utils/contestStatus.js";
 import mongoose from "mongoose";
 
 // @desc    Create a new contest
@@ -27,18 +31,10 @@ export const createContest = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (
-    !title ||
-    !description ||
-    !date ||
-    !time ||
-    !duration ||
-    !platform ||
-    !contestLink
-  ) {
+  if (!title || !description || !date || !time || !duration || !platform) {
     throw new ApiError(
       400,
-      "Missing required fields: title, description, date, time, duration, platform, and contestLink are required"
+      "Missing required fields: title, description, date, time, duration, platform are required"
     );
   }
 
@@ -48,12 +44,11 @@ export const createContest = asyncHandler(async (req, res) => {
     description.trim() === "" ||
     time.trim() === "" ||
     duration.trim() === "" ||
-    platform.trim() === "" ||
-    contestLink.trim() === ""
+    platform.trim() === ""
   ) {
     throw new ApiError(
       400,
-      "Title, description, time, duration, platform, and contestLink cannot be empty"
+      "Title, description, time, duration, platform, cannot be empty"
     );
   }
 
@@ -83,13 +78,6 @@ export const createContest = asyncHandler(async (req, res) => {
     );
   }
 
-  // Validate contestLink is a valid URL
-  try {
-    new URL(contestLink);
-  } catch (error) {
-    throw new ApiError(400, "Contest link must be a valid URL");
-  }
-
   // Handle image upload if exists using standardized path
   let imageUrl = null;
   if (req.file) {
@@ -110,7 +98,6 @@ export const createContest = asyncHandler(async (req, res) => {
     registrationDeadline: registrationDeadline
       ? new Date(registrationDeadline)
       : undefined,
-    contestLink: contestLink.trim(),
     status: status || "upcoming",
     contestType: contestType || ContestTypes.INDIVIDUAL,
     ...(imageUrl && { image: imageUrl }),
@@ -179,12 +166,28 @@ export const getAllContests = asyncHandler(async (req, res) => {
   }
 
   // Execute query
-  const contests = await Contest.find(filter)
+  let contests = await Contest.find(filter)
     .skip(skip)
     .limit(limit)
     .sort({ date: 1 }); // Sort by upcoming date
 
-  // Get total count
+  // Check and update contest status based on current time
+  for (let contest of contests) {
+    if (contest.status === "upcoming" && hasContestEnded(contest)) {
+      contest.status = "completed";
+      await contest.save();
+    }
+  }
+
+  // Re-fetch if we're filtering by status since some statuses may have changed
+  if (req.query.status) {
+    contests = await Contest.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ date: 1 });
+  }
+
+  // Get total count (after potential status updates)
   const totalContests = await Contest.countDocuments(filter);
 
   // Return contests with pagination info
@@ -217,6 +220,12 @@ export const getContest = asyncHandler(async (req, res) => {
 
   if (!contest) {
     throw new ApiError(404, "Contest not found");
+  }
+
+  // Check if the contest has ended but still marked as upcoming
+  if (contest.status === "upcoming" && hasContestEnded(contest)) {
+    contest.status = "completed";
+    await contest.save();
   }
 
   // Check if user ID was provided and if that user is registered
@@ -288,10 +297,6 @@ export const updateContest = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Platform cannot be empty");
   }
 
-  if (contestLink && contestLink.trim() === "") {
-    throw new ApiError(400, "Contest link cannot be empty");
-  }
-
   // Validate date format if provided
   if (date && !Date.parse(date)) {
     throw new ApiError(400, "Invalid date format");
@@ -318,15 +323,6 @@ export const updateContest = asyncHandler(async (req, res) => {
       400,
       `Contest type must be one of: ${Object.values(ContestTypes).join(", ")}`
     );
-  }
-
-  // Validate contestLink is a valid URL if provided
-  if (contestLink) {
-    try {
-      new URL(contestLink);
-    } catch (error) {
-      throw new ApiError(400, "Contest link must be a valid URL");
-    }
   }
 
   // Handle image update if exists using standardized path
@@ -391,6 +387,18 @@ export const registerForContest = asyncHandler(async (req, res) => {
 
   if (!contest) {
     throw new ApiError(404, "Contest not found");
+  }
+
+  // Check if user is already registered
+  if (userId) {
+    const isAlreadyRegistered = contest.participants.some(
+      (participant) =>
+        participant.user && participant.user.toString() === userId.toString()
+    );
+
+    if (isAlreadyRegistered) {
+      throw new ApiError(400, "You are already registered for this contest");
+    }
   }
 
   // Add participant with minimal validation

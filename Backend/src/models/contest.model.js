@@ -89,7 +89,6 @@ const contestSchema = new mongoose.Schema(
     },
     contestLink: {
       type: String,
-      required: [true, "Contest link is required"],
     },
     status: {
       type: String,

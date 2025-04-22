@@ -11,8 +11,8 @@ import { isAdmin } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// All endpoints are public - no authentication required
-router.get("/submissions", getUserSubmissions);
+// Public routes that don't require authentication
+router.get("/submissions", getUserSubmissions); // Removed verifyJWT middleware
 router.get("/submissions/:id", getSubmissionById);
 router.get("/contests/:contestId/standings", getContestStandings);
 router.get("/contests/:contestId/problems", getProblemsByContest);

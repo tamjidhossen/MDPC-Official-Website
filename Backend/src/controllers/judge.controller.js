@@ -124,40 +124,47 @@ export const getUserSubmissions = asyncHandler(async (req, res) => {
 
   const filter = {};
 
-  // Add user filter if provided
-  if (userId) filter.userId = userId;
+  // Simply filter by userId if provided
+  if (userId) {
+    filter.userId = userId;
+  }
 
-  // Add filters if provided
+  // Add additional filters if provided
   if (problemId) filter.problemId = problemId;
   if (contestId) filter.contestId = contestId;
   if (verdict) filter.verdict = verdict;
 
   const skip = (page - 1) * limit;
 
-  const submissions = await Submission.find(filter)
-    .populate("problemId", "name difficulty")
-    .populate("contestId", "title")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+  try {
+    const submissions = await Submission.find(filter)
+      .populate("problemId", "name difficulty")
+      .populate("contestId", "title")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
-  const total = await Submission.countDocuments(filter);
+    const total = await Submission.countDocuments(filter);
 
-  res.status(200).json(
-    new ApiResponse(
-      200,
-      {
-        submissions,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit),
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          submissions,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / limit),
+          },
         },
-      },
-      "Submissions fetched successfully"
-    )
-  );
+        "Submissions fetched successfully"
+      )
+    );
+  } catch (error) {
+    console.error("Error fetching submissions:", error);
+    throw new ApiError(500, "Failed to fetch submissions");
+  }
 });
 
 // @desc    Get a submission by ID
