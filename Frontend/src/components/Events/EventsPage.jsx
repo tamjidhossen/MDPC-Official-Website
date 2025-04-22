@@ -208,9 +208,7 @@ const EventsPage = () => {
                             : "Register Now"}
                         </Button>
                       ) : (
-                        <Button disabled className="w-full">
-                          Registration Closed
-                        </Button>
+                        <></>
                       )
                     ) : event.status === "completed" ? (
                       <Button variant="secondary" className="w-full" disabled>

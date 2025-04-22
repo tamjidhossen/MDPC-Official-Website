@@ -232,7 +232,7 @@ const ProblemDetailPage = () => {
                       </svg>
                       Description
                     </h3>
-                    <pre className="mt-3">{problem.description}</pre>
+                    <pre className="mt-3 whitespace-pre-wrap overflow-x-auto p-3 rounded bg-muted/50 text-sm">{problem.description}</pre>
                   </div>
 
                   <div className="mb-8">
@@ -242,7 +242,7 @@ const ProblemDetailPage = () => {
                       </svg>
                       Input Format
                     </h3>
-                    <pre className="mt-3">{problem.inputFormat}</pre>
+                    <pre className="mt-3 whitespace-pre-wrap overflow-x-auto p-3 rounded bg-muted/50 text-sm">{problem.inputFormat}</pre>
                   </div>
 
                   <div className="mb-8">
@@ -252,7 +252,7 @@ const ProblemDetailPage = () => {
                       </svg>
                       Output Format
                     </h3>
-                    <pre className="mt-3">{problem.outputFormat}</pre>
+                    <pre className="mt-3 whitespace-pre-wrap overflow-x-auto p-3 rounded bg-muted/50 text-sm">{problem.outputFormat}</pre>
                   </div>
 
                   {/* Enhanced example test cases */}

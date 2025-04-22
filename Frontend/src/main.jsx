@@ -16,6 +16,7 @@ import ErrorDisplay from "./components/ErrorPages/ErrorDisplay";
 import ContestLobbyPage from "./components/Contests/ContestLobbyPage";
 import ContestDetailPage from "./components/Contests/ContestDetailPage";
 import ProblemDetailPage from "./components/Contests/ContestLobby/ProblemDetailPage";
+import ContactPage from "./components/Contact/ContactPage";
 
 // Admin imports
 import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
@@ -72,6 +73,7 @@ const AppWithRoutes = () => {
             }
           />
           <Route path="join" element={<JoinPage />} />
+          <Route path="contact" element={<ContactPage />} />
         </Route>
         <Route path="/admin" errorElement={<ErrorDisplay />}>
           {" "}
