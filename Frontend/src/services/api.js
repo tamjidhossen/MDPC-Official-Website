@@ -298,36 +298,55 @@ export const contestApi = {
   },
 
   // Get a specific contest by ID
-  getById: async (contestId) => {
-    const response = await apiClient.get(`/contests/${contestId}`);
+  getById: async (contestId, params = {}) => {
+    const response = await apiClient.get(`/contests/${contestId}`, { params });
     return response.data;
   },
 
-  // Create a new contest (admin only)
+  // Create a new contest
   create: async (contestData) => {
     const response = await apiClient.post("/contests", contestData);
     return response.data;
   },
 
-  // Update an existing contest (admin only)
+  // Update an existing contest
   update: async (contestId, contestData) => {
     const response = await apiClient.put(`/contests/${contestId}`, contestData);
     return response.data;
   },
 
-  // Delete a contest (admin only)
+  // Delete a contest
   delete: async (contestId) => {
     const response = await apiClient.delete(`/contests/${contestId}`);
     return response.data;
   },
 
   // Register for a contest
-  register: async (contestId) => {
-    const response = await apiClient.post(`/contests/${contestId}/register`);
+  register: async (contestId, userData = {}) => {
+    const response = await apiClient.post(
+      `/contests/${contestId}/register`,
+      userData
+    );
     return response.data;
   },
 
-  // Add contest results (admin only)
+  // Unregister from a contest
+  unregister: async (contestId, userData = {}) => {
+    const response = await apiClient.delete(`/contests/${contestId}/register`, {
+      data: userData,
+    });
+    return response.data;
+  },
+
+  // Get contest lobby data
+  getLobby: async (contestId, params = {}) => {
+    const response = await apiClient.get(`/contests/${contestId}/lobby`, {
+      params,
+    });
+    return response.data;
+  },
+
+  // Add contest results
   addResults: async (contestId, resultsData) => {
     const response = await apiClient.post(
       `/contests/${contestId}/results`,

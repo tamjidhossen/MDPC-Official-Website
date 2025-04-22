@@ -11,13 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Clock,
-  Calendar,
-  Users,
-  AlertCircle,
-  ExternalLink,
-} from "lucide-react";
+import { Clock, Calendar, Users, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contestApi } from "@/services/api";
 import { format } from "date-fns";
@@ -70,10 +64,8 @@ const ContestsPage = () => {
     } catch (err) {
       console.error("Error registering for contest:", err);
       toast({
-        variant: "destructive",
         title: "Registration Failed",
-        description:
-          err.response?.data?.message || "Failed to register for this contest.",
+        description: "Failed to register for this contest.",
       });
     }
   };
@@ -135,29 +127,33 @@ const ContestsPage = () => {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {contests.map((contest) => (
                     <Card key={contest._id} className="flex flex-col">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <CardTitle>{contest.title}</CardTitle>
-                          {contest.difficultyLevel && (
-                            <Badge
-                              variant={
-                                contest.difficultyLevel
-                                  .toLowerCase()
-                                  .includes("easy")
-                                  ? "secondary"
-                                  : contest.difficultyLevel
-                                      .toLowerCase()
-                                      .includes("medium")
-                                  ? "default"
-                                  : "destructive"
-                              }
-                            >
-                              {contest.difficultyLevel}
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription>{contest.description}</CardDescription>
-                      </CardHeader>
+                      <Link to={`/contests/${contest._id}`}>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle>{contest.title}</CardTitle>
+                            {contest.difficultyLevel && (
+                              <Badge
+                                variant={
+                                  contest.difficultyLevel
+                                    .toLowerCase()
+                                    .includes("easy")
+                                    ? "secondary"
+                                    : contest.difficultyLevel
+                                        .toLowerCase()
+                                        .includes("medium")
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+                                {contest.difficultyLevel}
+                              </Badge>
+                            )}
+                          </div>
+                          <CardDescription>
+                            {contest.description}
+                          </CardDescription>
+                        </CardHeader>
+                      </Link>
                       <CardContent className="flex-grow">
                         <div className="space-y-4">
                           <div className="flex items-center gap-2 text-sm">
@@ -177,7 +173,7 @@ const ContestsPage = () => {
                               registered
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
+                          {/* <div className="flex items-center gap-2 text-sm">
                             <ExternalLink className="h-4 w-4 text-muted-foreground" />
                             <a
                               href={contest.contestLink}
@@ -187,24 +183,20 @@ const ContestsPage = () => {
                             >
                               {contest.platform}
                             </a>
-                          </div>
+                          </div> */}
                         </div>
                       </CardContent>
-                      {/* <CardFooter>
-                        {contest.registrationStatus ? (
-                          <Button
-                            className="w-full"
-                            onClick={() => handleRegister(contest._id)}
-                          >
-                            Register Now
-                          </Button>
-                        ) : (
-                          <Button variant="outline" className="w-full" disabled>
-                            <AlertCircle className="mr-2 h-4 w-4" />
-                            Registration Closed
-                          </Button>
-                        )}
-                      </CardFooter> */}
+                      <CardFooter>
+                        <Button
+                          className="w-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleRegister(contest._id);
+                          }}
+                        >
+                          Register Now
+                        </Button>
+                      </CardFooter>
                     </Card>
                   ))}
                 </div>
@@ -222,17 +214,21 @@ const ContestsPage = () => {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {contests.map((contest) => (
                     <Card key={contest._id}>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <CardTitle>{contest.title}</CardTitle>
-                          {contest.difficultyLevel && (
-                            <Badge variant="outline">
-                              {contest.difficultyLevel}
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription>{contest.description}</CardDescription>
-                      </CardHeader>
+                      <Link to={`/contests/${contest._id}/lobby`}>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle>{contest.title}</CardTitle>
+                            {contest.difficultyLevel && (
+                              <Badge variant="outline">
+                                {contest.difficultyLevel}
+                              </Badge>
+                            )}
+                          </div>
+                          <CardDescription>
+                            {contest.description}
+                          </CardDescription>
+                        </CardHeader>
+                      </Link>
                       <CardContent>
                         <div className="space-y-4">
                           <div className="flex items-center gap-2 text-sm">
@@ -258,18 +254,18 @@ const ContestsPage = () => {
                           </div>
                         </div>
                       </CardContent>
-                      {contest.resultsData?.problems?.length > 0 && (
-                        <CardFooter>
-                          <Link
-                            to={`/contests/${contest._id}`}
-                            className="w-full"
-                          >
-                            <Button variant="outline" className="w-full">
-                              View Results
-                            </Button>
-                          </Link>
-                        </CardFooter>
-                      )}
+                      <CardFooter>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = `/contests/${contest._id}/lobby`;
+                          }}
+                        >
+                          Enter Contest
+                        </Button>
+                      </CardFooter>
                     </Card>
                   ))}
                 </div>

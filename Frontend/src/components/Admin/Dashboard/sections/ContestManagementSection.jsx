@@ -37,15 +37,20 @@ import {
   Share2,
   Users,
   Trophy,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contestApi } from "@/services/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProblemManagement from "../ProblemManagement";
 
 const ContestManagementSection = () => {
   const { toast } = useToast();
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("contests");
+  const [selectedContestId, setSelectedContestId] = useState("");
 
   const [newContest, setNewContest] = useState({
     title: "",
@@ -339,7 +344,7 @@ const ContestManagementSection = () => {
             Contest Management
           </h2>
           <p className="text-muted-foreground">
-            Create and manage programming contest announcements.
+            Create and manage programming contests and problems.
           </p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -570,139 +575,166 @@ const ContestManagementSection = () => {
         </Dialog>
       </div>
 
-      {loading && (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">Loading contests...</p>
-        </div>
-      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="contests">Contests</TabsTrigger>
+          <TabsTrigger value="problems">Problems</TabsTrigger>
+        </TabsList>
 
-      {error && !loading && (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      )}
+        <TabsContent value="contests" className="mt-4 space-y-4">
+          {loading && (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">Loading contests...</p>
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 gap-6">
-        {!loading && contests.length > 0
-          ? contests.map((contest) => (
-              <Card key={contest._id}>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row gap-2 justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl break-words">
-                        {contest.title}
-                      </CardTitle>
-                      <CardDescription className="flex flex-wrap gap-1 items-center">
-                        {formatDate(contest.date)} • {contest.time} •
-                        <Badge variant="outline" className="ml-1">
-                          {contest.platform}
-                        </Badge>
-                        {contest.difficultyLevel && (
-                          <Badge variant="secondary" className="ml-1">
-                            {contest.difficultyLevel}
-                          </Badge>
-                        )}
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+          {error && !loading && (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-6">
+            {!loading && contests.length > 0
+              ? contests.map((contest) => (
+                  <Card key={contest._id}>
+                    <CardHeader>
+                      <div className="flex flex-col sm:flex-row gap-2 justify-between items-start">
+                        <div>
+                          <CardTitle className="text-xl break-words">
+                            {contest.title}
+                          </CardTitle>
+                          <CardDescription className="flex flex-wrap gap-1 items-center">
+                            {formatDate(contest.date)} • {contest.time} •
+                            <Badge variant="outline" className="ml-1">
+                              {contest.platform}
+                            </Badge>
+                            {contest.difficultyLevel && (
+                              <Badge variant="secondary" className="ml-1">
+                                {contest.difficultyLevel}
+                              </Badge>
+                            )}
+                          </CardDescription>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleShareContest(contest)}
+                            className="w-full sm:w-auto"
+                          >
+                            <Share2 className="h-4 w-4 mr-2" /> Share
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            asChild
+                            className="w-full sm:w-auto"
+                          >
+                            <a
+                              href={contest.contestLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" /> Visit
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        {contest.description}
+                      </p>
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium">Duration</p>
+                          <p className="text-muted-foreground">
+                            {contest.duration} minutes
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Status</p>
+                          <p className="capitalize text-muted-foreground">
+                            {contest.status}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Registrations</p>
+                          <p className="text-muted-foreground">
+                            {contest.registrationStatus ? "Open" : "Closed"} •
+                            {contest.participants
+                              ? ` ${contest.participants.length} registered`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-wrap justify-end border-t pt-4 gap-2">
+                      {contest.status === "completed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewResults(contest)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Trophy className="h-4 w-4 mr-2" /> Results
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleShareContest(contest)}
+                        onClick={() => handleViewContest(contest)}
                         className="w-full sm:w-auto"
                       >
-                        <Share2 className="h-4 w-4 mr-2" /> Share
+                        <Users className="h-4 w-4 mr-2" /> Participants
                       </Button>
                       <Button
                         size="sm"
-                        variant="default"
-                        asChild
+                        variant="outline"
+                        onClick={() => handleEditContest(contest)}
                         className="w-full sm:w-auto"
                       >
-                        <a
-                          href={contest.contestLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" /> Visit
-                        </a>
+                        <Edit className="h-4 w-4 mr-2" /> Edit
                       </Button>
-                    </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setActiveTab("problems");
+                          // Set the selected contest for ProblemManagement
+                          setSelectedContestId(contest._id);
+                        }}
+                        className="w-full sm:w-auto"
+                      >
+                        <FileText className="h-4 w-4 mr-2" /> Manage Problems
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteContest(contest._id)}
+                        className="w-full sm:w-auto"
+                      >
+                        <Trash className="h-4 w-4 mr-2" /> Delete
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              : !loading && (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      No contests have been created yet. Add a new contest to
+                      get started.
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{contest.description}</p>
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="font-medium">Duration</p>
-                      <p className="text-muted-foreground">
-                        {contest.duration} minutes
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-medium">Status</p>
-                      <p className="capitalize text-muted-foreground">
-                        {contest.status}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-medium">Registrations</p>
-                      <p className="text-muted-foreground">
-                        {contest.registrationStatus ? "Open" : "Closed"} •
-                        {contest.participants
-                          ? ` ${contest.participants.length} registered`
-                          : ""}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-wrap justify-end border-t pt-4 gap-2">
-                  {contest.status === "completed" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleViewResults(contest)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Trophy className="h-4 w-4 mr-2" /> Results
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewContest(contest)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Users className="h-4 w-4 mr-2" /> Participants
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditContest(contest)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Edit className="h-4 w-4 mr-2" /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteContest(contest._id)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Trash className="h-4 w-4 mr-2" /> Delete
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))
-          : !loading && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No contests have been created yet. Add a new contest to get
-                  started.
-                </p>
-              </div>
-            )}
-      </div>
+                )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="problems" className="mt-4">
+          <ProblemManagement selectedContestId={selectedContestId} />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Contest Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

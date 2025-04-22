@@ -12,7 +12,10 @@ import DashboardPage from "./components/User/Dashboard/DashboardPage";
 import BlogDetailPage from "./components/Blogs/BlogDetailPage";
 import ResourceDetailPage from "./components/Resources/ResourceDetailPage";
 import JoinPage from "./components/Join/JoinPage";
-import ErrorDisplay from "./components/ErrorPages/ErrorDisplay"; 
+import ErrorDisplay from "./components/ErrorPages/ErrorDisplay";
+import ContestLobbyPage from "./components/Contests/ContestLobbyPage";
+import ContestDetailPage from "./components/Contests/ContestDetailPage";
+import ProblemDetailPage from "./components/Contests/ContestLobby/ProblemDetailPage";
 
 // Admin imports
 import AdminDashboardPage from "./components/Admin/Dashboard/DashboardPage";
@@ -42,7 +45,18 @@ const AppWithRoutes = () => {
           {/* Add errorElement here */}
           <Route path="" element={<HomePage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
+          {/* Contest routes - no auth required */}
           <Route path="contests" element={<ContestsPage />} />
+          <Route path="contests/:id" element={<ContestDetailPage />} />
+          <Route path="contests/:id/lobby" element={<ContestLobbyPage />} />
+          <Route
+            path="contests/:contestId/problems/:problemId"
+            element={<ProblemDetailPage />}
+          />
+          <Route
+            path="contests/:contestId/problem/:problemId"
+            element={<ProblemDetailPage />}
+          />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="resources/blog/:id" element={<BlogDetailPage />} />
           <Route path="resources/:id" element={<ResourceDetailPage />} />
