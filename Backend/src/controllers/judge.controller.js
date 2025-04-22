@@ -91,10 +91,11 @@ export const submitCode = asyncHandler(async (req, res) => {
     if (participantIndex !== -1) {
       // Check if user has already solved this problem
       const existingSubmission = await Submission.findOne({
-        userId,
-        problemId,
-        contestId,
+        userId: userId,
+        problemId: problemId,
+        contestId: contestId,
         verdict: "Accepted",
+        _id: { $ne: submission._id }, // Exclude the current submission
       });
 
       // Only update score if this is their first accepted submission for this problem
@@ -103,21 +104,42 @@ export const submitCode = asyncHandler(async (req, res) => {
         const existingScore = contest.participants[participantIndex].score || 0;
         contest.participants[participantIndex].score = existingScore + score;
 
-        // Re-sort and update ranks
-        const sortedParticipants = contest.participants.sort(
+        // Create a sorted copy for ranking
+        const sortedParticipants = [...contest.participants].sort(
           (a, b) => (b.score || 0) - (a.score || 0)
         );
+
+        // Assign ranks
         let currentRank = 1;
         let prevScore = -1;
+
+        // Create a map to store ranks by user ID
+        const rankMap = new Map();
 
         sortedParticipants.forEach((participant, index) => {
           if (participant.score !== prevScore) {
             currentRank = index + 1;
             prevScore = participant.score;
           }
-          participant.rank = currentRank;
+          // Store ranks in map keyed by user ID
+          rankMap.set(participant.user.toString(), currentRank);
         });
 
+        // Update ranks in the original participants array
+        contest.participants.forEach((participant) => {
+          if (participant.user) {
+            const userId = participant.user.toString();
+            if (rankMap.has(userId)) {
+              participant.rank = rankMap.get(userId);
+            }
+          }
+        });
+
+        console.log(
+          `Updated participant score: ${contest.participants[participantIndex].score}, rank: ${contest.participants[participantIndex].rank}`
+        );
+
+        // Save the updated contest
         await contest.save();
       }
     }
