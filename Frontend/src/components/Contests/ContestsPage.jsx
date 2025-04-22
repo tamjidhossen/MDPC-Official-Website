@@ -70,6 +70,7 @@ const ContestsPage = () => {
       toast({
         title: "Registration Failed",
         description: "Failed to register for this contest.",
+        variant: "destructive"
       });
     }
   };

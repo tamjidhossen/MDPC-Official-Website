@@ -81,10 +81,43 @@ export const ContestManagementSection = () => {
     try {
       setLoading(true);
       const response = await contestApi.getAll();
-      // Sort contests with most recent first
-      const sortedContests = [...(response.data.contests || [])].sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
-      );
+      // Sort contests with most recent first by date and time
+      const sortedContests = [...(response.data.contests || [])].sort((a, b) => {
+        // Parse the date part
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        
+        // Parse the time part (in format like "2:30 PM")
+        const timePartsA = a.time ? a.time.match(/(\d+):(\d+)\s+(AM|PM)/i) : null;
+        const timePartsB = b.time ? b.time.match(/(\d+):(\d+)\s+(AM|PM)/i) : null;
+        
+        // If we have valid date and time parts, create a full date-time object
+        if (dateA && timePartsA && dateB && timePartsB) {
+          // Extract hours, minutes, and period from time parts
+          let [, hoursA, minutesA, periodA] = timePartsA;
+          let [, hoursB, minutesB, periodB] = timePartsB;
+          
+          // Convert to 24-hour format
+          hoursA = parseInt(hoursA);
+          hoursB = parseInt(hoursB);
+          
+          // Adjust hours for PM
+          if (periodA.toUpperCase() === "PM" && hoursA < 12) hoursA += 12;
+          if (periodA.toUpperCase() === "AM" && hoursA === 12) hoursA = 0;
+          if (periodB.toUpperCase() === "PM" && hoursB < 12) hoursB += 12;
+          if (periodB.toUpperCase() === "AM" && hoursB === 12) hoursB = 0;
+          
+          // Set hours and minutes on our date objects
+          dateA.setHours(hoursA, parseInt(minutesA), 0, 0);
+          dateB.setHours(hoursB, parseInt(minutesB), 0, 0);
+          
+          // Return the comparison
+          return dateB - dateA;
+        }
+        
+        // Fallback to date-only comparison if time parsing fails
+        return dateB - dateA;
+      });
       setContests(sortedContests);
       setError(null);
     } catch (err) {
