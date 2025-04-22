@@ -191,23 +191,13 @@ const ContestDetailPage = () => {
 
           {/* Registration/Entry Button */}
           <div className="flex flex-wrap items-center gap-4 mb-8">
-            {hasStarted ? (
-              <Button
-                onClick={() => (window.location.href = `/contests/${id}/lobby`)}
-                className="w-full md:w-auto"
-              >
-                <LogIn className="mr-2 h-4 w-4" />
-                Enter Contest Lobby
-              </Button>
-            ) : !isRegistered ? (
-              <Button onClick={handleRegister} className="w-full md:w-auto">
-                Register Now
-              </Button>
-            ) : (
-              <Badge variant="outline" className="py-2 px-4">
-                You are registered
-              </Badge>
-            )}
+            <Button
+              onClick={() => (window.location.href = `/contests/${id}/lobby`)}
+              className="w-full md:w-auto"
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Enter Contest Lobby
+            </Button>
           </div>
 
           {/* Tabs Section */}
@@ -223,96 +213,108 @@ const ContestDetailPage = () => {
               <TabsTrigger value="prizes">Prizes</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="py-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contest Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">Description</h3>
-                    <p>
-                      {contest.description ||
-                        "No detailed description available."}
-                    </p>
-                  </div>
-
-                  {contest.problems && contest.problems.length > 0 && (
+            <TabsContent value="details" className="py-6">
+              <Card className="border-t-0 rounded-t-none shadow-sm">
+                <CardContent className="pt-6 pb-4">
+                  <div className="space-y-6">
                     <div>
-                      <h3 className="font-medium mb-2">Problems</h3>
-                      <p>
-                        This contest includes {contest.problems.length}{" "}
-                        problems.
+                      <h3 className="text-lg font-semibold text-primary mb-3">Description</h3>
+                      <p className="text-gray-700 leading-relaxed">
+                        {contest.description ||
+                          "No detailed description available."}
                       </p>
                     </div>
-                  )}
 
-                  {contest.registrationDeadline && (
-                    <div>
-                      <h3 className="font-medium mb-2">
-                        Registration Deadline
-                      </h3>
-                      <p>{formatDate(contest.registrationDeadline)}</p>
-                    </div>
-                  )}
+                    {contest.problems && contest.problems.length > 0 && (
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <h3 className="text-lg font-semibold text-primary mb-3 flex items-center">
+                          <Trophy className="h-5 w-5 mr-2" />
+                          Problems
+                        </h3>
+                        <p className="text-gray-700">
+                          This contest includes <span className="font-medium">{contest.problems.length}</span>{" "}
+                          carefully selected problems to challenge your skills.
+                        </p>
+                      </div>
+                    )}
+
+                    {contest.registrationDeadline && (
+                      <div className="border-l-4 border-primary pl-4">
+                        <h3 className="text-lg font-semibold text-primary mb-3">Registration Deadline</h3>
+                        <p className="text-gray-700 flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {formatDate(contest.registrationDeadline)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="rules" className="py-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contest Rules</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <TabsContent value="rules" className="py-6">
+              <Card className="border-t-0 rounded-t-none shadow-sm">
+                <CardContent className="pt-6 pb-4">
                   {contest.rules ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 text-gray-700 leading-relaxed">
                       {contest.rules.split("\n").map((rule, index) => (
-                        <p key={index}>{rule}</p>
+                        <p key={index} className="flex gap-2">
+                          <span className="text-primary font-semibold">{index + 1}.</span>
+                          <span>{rule}</span>
+                        </p>
                       ))}
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <p>
-                        1. This is a virtual contest hosted on our platform.
-                      </p>
-                      <p>
-                        2. You are allowed to use any programming language
-                        supported by our judge system.
-                      </p>
-                      <p>
-                        3. Internet access is allowed, but collaboration with
-                        others during the contest is prohibited.
-                      </p>
-                      <p>
-                        4. Each participant must submit their own solutions.
-                      </p>
-                      <p>5. Plagiarism will result in disqualification.</p>
-                      <p>
-                        6. The contest leaderboard is determined by the number
-                        of problems solved and submission time.
-                      </p>
-                    </div>
+                    <ol className="space-y-4 text-gray-700 list-none">
+                      {[
+                        "This is a virtual contest hosted on our platform.",
+                        "You are allowed to use any programming language supported by our judge system.",
+                        "Internet access is allowed, but collaboration with others during the contest is prohibited.",
+                        "Each participant must submit their own solutions.",
+                        "Plagiarism will result in disqualification.",
+                        "The contest leaderboard is determined by the number of problems solved and submission time."
+                      ].map((rule, index) => (
+                        <li key={index} className="flex items-baseline gap-3 p-2 border-b last:border-0">
+                          <span className="bg-primary/10 text-primary font-medium rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                            {index + 1}
+                          </span>
+                          <span>{rule}</span>
+                        </li>
+                      ))}
+                    </ol>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="prizes" className="py-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Prizes & Recognition</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <TabsContent value="prizes" className="py-6">
+              <Card className="border-t-0 rounded-t-none shadow-sm">
+                <CardContent className="pt-6 pb-4">
+                  <div className="flex items-center justify-center mb-6">
+                    <Trophy className="h-12 w-12 text-yellow-500" />
+                  </div>
+                  
                   {contest.prizes ? (
-                    <div dangerouslySetInnerHTML={{ __html: contest.prizes }} />
+                    <div 
+                      className="prose prose-zinc max-w-none"
+                      dangerouslySetInnerHTML={{ __html: contest.prizes }} 
+                    />
                   ) : (
-                    <div className="space-y-4">
-                      <p>
-                        Winners will be recognized on our leaderboard and social
-                        media channels.
-                      </p>
-                      <p>Certificates will be provided to top performers.</p>
+                    <div className="space-y-6">
+                      <div className="">
+                        <h3 className="text-lg font-semibold text-primary mb-2">Recognition</h3>
+                        <p className="text-gray-700">
+                          Winners will be recognized on our leaderboard and social
+                          media channels.
+                        </p>
+                      </div>
+                      
+                      <div className="">
+                        <h3 className="text-lg font-semibold text-primary mb-2">Certificates</h3>
+                        <p className="text-gray-700">
+                          Certificates will be provided to top performers.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </CardContent>
