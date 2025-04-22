@@ -81,10 +81,46 @@ export const submitCode = asyncHandler(async (req, res) => {
     })),
   });
 
-  // Update contest scores if needed (simplified)
+  // Update contest scores if needed
   if (judgingResult.verdict === "Accepted" && contest && !isTemporaryUser) {
-    // Update participant score logic if needed
-    // ...
+    // Find the participant in the contest
+    const participantIndex = contest.participants.findIndex(
+      (p) => p.user.toString() === userId
+    );
+
+    if (participantIndex !== -1) {
+      // Check if user has already solved this problem
+      const existingSubmission = await Submission.findOne({
+        userId,
+        problemId,
+        contestId,
+        verdict: "Accepted",
+      });
+
+      // Only update score if this is their first accepted submission for this problem
+      if (!existingSubmission) {
+        // Update or add to participant's score
+        const existingScore = contest.participants[participantIndex].score || 0;
+        contest.participants[participantIndex].score = existingScore + score;
+
+        // Re-sort and update ranks
+        const sortedParticipants = contest.participants.sort(
+          (a, b) => (b.score || 0) - (a.score || 0)
+        );
+        let currentRank = 1;
+        let prevScore = -1;
+
+        sortedParticipants.forEach((participant, index) => {
+          if (participant.score !== prevScore) {
+            currentRank = index + 1;
+            prevScore = participant.score;
+          }
+          participant.rank = currentRank;
+        });
+
+        await contest.save();
+      }
+    }
   }
 
   // Return response with filtered results for example test cases

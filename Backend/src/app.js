@@ -30,15 +30,31 @@ app.use(
 ); // Set security headers
 app.use(morgan("dev")); // Logging
 
-// Rate limiting
-const limiter = rateLimit({
+// Global rate limiter - more lenient for general routes
+const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 500, // Increased from 100 to 500 requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests from this IP, please try again after 15 minutes",
 });
-app.use(limiter);
+
+// Specific rate limiter for submission endpoint
+const submissionLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // 10 submissions per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many submissions. Please wait a minute before trying again.",
+});
+
+// Apply global rate limiter to all routes except /api/v1/judge/submit
+app.use((req, res, next) => {
+  if (req.path === "/api/v1/judge/submit") {
+    return submissionLimiter(req, res, next);
+  }
+  return globalLimiter(req, res, next);
+});
 
 // CORS configuration
 app.use(
