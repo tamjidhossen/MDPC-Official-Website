@@ -84,6 +84,10 @@ export function AuthProvider({ children }) {
 
       if (response.success) {
         setUser(response.data.user);
+        // Store the access token in localStorage
+        if (response.data.accessToken) {
+          localStorage.setItem("accessToken", response.data.accessToken);
+        }
         toast({
           title: "Login successful",
           description: "You have successfully logged in",
@@ -109,6 +113,8 @@ export function AuthProvider({ children }) {
     try {
       await userApi.logout();
       setUser(null);
+      // Clear the access token from localStorage
+      localStorage.removeItem("accessToken");
       toast({
         title: "Logout successful",
         description: "You have been logged out",

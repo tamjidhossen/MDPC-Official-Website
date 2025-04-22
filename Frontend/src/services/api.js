@@ -9,6 +9,20 @@ const apiClient = axios.create({
   withCredentials: true, // This is important for cookies to be sent and received
 });
 
+// Add request interceptor to include auth token from localStorage if available
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
