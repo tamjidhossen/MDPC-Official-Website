@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -23,16 +22,21 @@ const ContestSubmissionsTab = ({ contestId, userId }) => {
 
   useEffect(() => {
     const fetchSubmissions = async () => {
+      if (!userId) {
+        setLoading(false);
+        setSubmissions([]);
+        return;
+      }
+
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
 
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/judge/submissions`,
           {
-            headers: { Authorization: `Bearer ${token}` },
             params: {
               contestId,
+              userId,
               page,
               limit: 10,
             },
@@ -85,6 +89,17 @@ const ContestSubmissionsTab = ({ contestId, userId }) => {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="text-center py-8">
+        <h3 className="text-xl font-semibold">No user ID provided</h3>
+        <p className="text-muted-foreground mt-2">
+          Unable to fetch submissions without a user ID.
+        </p>
       </div>
     );
   }

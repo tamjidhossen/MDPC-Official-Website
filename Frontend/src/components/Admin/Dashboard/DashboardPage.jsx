@@ -5,7 +5,7 @@ import OverviewSection from "./sections/OverviewSection";
 import BlogManagementSection from "./sections/BlogManagementSection";
 import MemberDatabaseSection from "./sections/MemberDatabaseSection";
 import EventManagementSection from "./sections/EventManagementSection";
-import ContestManagementSection from "./sections/ContestManagementSection";
+import { ContestManagementSection } from "./sections/ContestManagementSection";
 import RegistrationSettingsSection from "./sections/RegistrationSettingsSection";
 import AdminManagementSection from "./sections/AdminManagementSection";
 import ResourceManagementSection from "./sections/ResourceManagementSection";

@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { useToast } from "../../hooks/use-toast";
+import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import ContestProblemsTab from "./ContestLobby/ContestProblemsTab";
 import ContestStandingsTab from "./ContestLobby/ContestStandingsTab";
@@ -14,6 +15,7 @@ const ContestLobbyPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [lobbyData, setLobbyData] = useState(null);
@@ -21,8 +23,13 @@ const ContestLobbyPage = () => {
   const [registering, setRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
-  // Get temp user ID
+  // Get user ID (either authenticated user ID or temporary ID for non-logged in users)
   const getUserId = () => {
+    if (isAuthenticated() && user) {
+      return user._id; // Use the authenticated user's ID
+    }
+
+    // Fallback to temporary ID for non-authenticated users
     let tempUserId = localStorage.getItem("tempUserId");
     if (!tempUserId) {
       tempUserId = "user_" + Date.now();

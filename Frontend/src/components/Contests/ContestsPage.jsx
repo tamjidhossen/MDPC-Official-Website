@@ -30,7 +30,11 @@ const ContestsPage = () => {
         const response = await contestApi.getAll({
           status: activeTab,
         });
-        setContests(response.data.contests || []);
+        // Sort contests with most recent first
+        const sortedContests = [...(response.data.contests || [])].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+        setContests(sortedContests);
         setError(null);
       } catch (err) {
         console.error("Error fetching contests:", err);

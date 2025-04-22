@@ -44,7 +44,7 @@ import { contestApi } from "@/services/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProblemManagement from "../ProblemManagement";
 
-const ContestManagementSection = () => {
+export const ContestManagementSection = () => {
   const { toast } = useToast();
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ const ContestManagementSection = () => {
     title: "",
     description: "",
     date: new Date(),
-    time: "",
+    time: "12:00 PM", // Default time with AM/PM format
     duration: "",
     platform: "",
     difficultyLevel: "",
@@ -81,7 +81,11 @@ const ContestManagementSection = () => {
     try {
       setLoading(true);
       const response = await contestApi.getAll();
-      setContests(response.data.contests || []);
+      // Sort contests with most recent first
+      const sortedContests = [...(response.data.contests || [])].sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+      setContests(sortedContests);
       setError(null);
     } catch (err) {
       console.error("Error fetching contests:", err);
@@ -160,7 +164,7 @@ const ContestManagementSection = () => {
         title: "",
         description: "",
         date: new Date(),
-        time: "",
+        time: "12:00 PM", // Default time with AM/PM format
         duration: "",
         platform: "",
         difficultyLevel: "",
@@ -291,9 +295,20 @@ const ContestManagementSection = () => {
     });
   };
 
-  const handleViewContest = (contest) => {
-    setSelectedContest(contest);
-    setViewDialogOpen(true);
+  const handleViewContest = async (contest) => {
+    try {
+      // Get full contest details with populated participant data
+      const response = await contestApi.getById(contest._id);
+      setSelectedContest(response.data.contest);
+      setViewDialogOpen(true);
+    } catch (err) {
+      console.error("Error fetching contest details:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load contest details.",
+      });
+    }
   };
 
   const handleEditContest = (contest) => {
@@ -411,9 +426,8 @@ const ContestManagementSection = () => {
                     name="contestLink"
                     value={newContest.contestLink}
                     onChange={handleInputChange}
-                    placeholder="https://"
+                    placeholder="https://vjudge.com/contest/"
                     className="sm:col-span-3"
-                    required
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
@@ -446,15 +460,86 @@ const ContestManagementSection = () => {
                   <Label htmlFor="time" className="sm:text-right">
                     Time
                   </Label>
-                  <Input
-                    id="time"
-                    name="time"
-                    value={newContest.time}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 2:00 PM"
-                    className="sm:col-span-3"
-                    required
-                  />
+                  <div className="sm:col-span-3">
+                    <Input
+                      id="time"
+                      name="time"
+                      type="text"
+                      value={newContest.time}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Allow typing but format on blur
+                        setNewContest((prev) => ({
+                          ...prev,
+                          time: value,
+                        }));
+                      }}
+                      onBlur={(e) => {
+                        // Format time on blur to ensure consistent format
+                        let value = e.target.value;
+                        // Simple regex to check if time is in 12-hour format with AM/PM
+                        const timeRegex =
+                          /^(1[0-2]|0?[1-9]):([0-5][0-9]) (AM|PM)$/i;
+
+                        if (!timeRegex.test(value)) {
+                          // Try to parse and format the time
+                          try {
+                            // Extract hours and minutes
+                            const timeParts = value.match(
+                              /(\d{1,2})[:\s]?(\d{1,2})?\s*(am|pm)?/i
+                            );
+                            if (timeParts) {
+                              let hours = parseInt(timeParts[1]);
+                              const minutes = timeParts[2]
+                                ? parseInt(timeParts[2])
+                                : 0;
+                              let period = timeParts[3]
+                                ? timeParts[3].toUpperCase()
+                                : "";
+
+                              // Determine AM/PM if not specified
+                              if (!period) {
+                                period = hours >= 12 ? "PM" : "AM";
+                              }
+
+                              // Convert to 12-hour format
+                              if (hours > 12) {
+                                hours = hours - 12;
+                                if (!timeParts[3]) period = "PM";
+                              } else if (hours === 0) {
+                                hours = 12;
+                                if (!timeParts[3]) period = "AM";
+                              } else if (hours === 12 && !timeParts[3]) {
+                                period = "PM";
+                              }
+
+                              // Format as HH:MM AM/PM
+                              value = `${hours}:${minutes
+                                .toString()
+                                .padStart(2, "0")} ${period}`;
+                            } else {
+                              // Default to noon if parsing fails
+                              value = "12:00 PM";
+                            }
+                          } catch (err) {
+                            // Default time if parsing fails
+                            value = "12:00 PM";
+                          }
+                        }
+
+                        setNewContest((prev) => ({
+                          ...prev,
+                          time: value,
+                        }));
+                      }}
+                      placeholder="e.g., 2:30 PM"
+                      className="w-full"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Format: HH:MM AM/PM (e.g., 2:30 PM)
+                    </p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
                   <Label htmlFor="duration" className="sm:text-right">
@@ -763,7 +848,204 @@ const ContestManagementSection = () => {
                     />
                   </div>
 
-                  {/* ... repeat the pattern for other fields ... */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-description" className="sm:text-right">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="edit-description"
+                      name="description"
+                      value={selectedContest.description}
+                      onChange={handleEditChange}
+                      className="sm:col-span-3"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-date" className="sm:text-right">
+                      Date
+                    </Label>
+                    <div className="sm:col-span-3">
+                      <Input
+                        id="edit-date"
+                        name="date"
+                        type="date"
+                        value={
+                          selectedContest.date instanceof Date
+                            ? selectedContest.date.toISOString().split("T")[0]
+                            : selectedContest.date
+                        }
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          setSelectedContest({ ...selectedContest, date });
+                        }}
+                        className="w-full"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-time" className="sm:text-right">
+                      Time
+                    </Label>
+                    <div className="sm:col-span-3">
+                      <Input
+                        id="edit-time"
+                        name="time"
+                        type="text"
+                        value={selectedContest.time}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Allow typing but format on blur
+                          setSelectedContest((prev) => ({
+                            ...prev,
+                            time: value,
+                          }));
+                        }}
+                        onBlur={(e) => {
+                          // Format time on blur to ensure consistent format
+                          let value = e.target.value;
+                          // Simple regex to check if time is in 12-hour format with AM/PM
+                          const timeRegex =
+                            /^(1[0-2]|0?[1-9]):([0-5][0-9]) (AM|PM)$/i;
+
+                          if (!timeRegex.test(value)) {
+                            // Try to parse and format the time
+                            try {
+                              // Extract hours and minutes
+                              const timeParts = value.match(
+                                /(\d{1,2})[:\s]?(\d{1,2})?\s*(am|pm)?/i
+                              );
+                              if (timeParts) {
+                                let hours = parseInt(timeParts[1]);
+                                const minutes = timeParts[2]
+                                  ? parseInt(timeParts[2])
+                                  : 0;
+                                let period = timeParts[3]
+                                  ? timeParts[3].toUpperCase()
+                                  : "";
+
+                                // Determine AM/PM if not specified
+                                if (!period) {
+                                  period = hours >= 12 ? "PM" : "AM";
+                                }
+
+                                // Convert to 12-hour format
+                                if (hours > 12) {
+                                  hours = hours - 12;
+                                  if (!timeParts[3]) period = "PM";
+                                } else if (hours === 0) {
+                                  hours = 12;
+                                  if (!timeParts[3]) period = "AM";
+                                } else if (hours === 12 && !timeParts[3]) {
+                                  period = "PM";
+                                }
+
+                                // Format as HH:MM AM/PM
+                                value = `${hours}:${minutes
+                                  .toString()
+                                  .padStart(2, "0")} ${period}`;
+                              } else {
+                                // Default to noon if parsing fails
+                                value = "12:00 PM";
+                              }
+                            } catch (err) {
+                              // Default time if parsing fails
+                              value = "12:00 PM";
+                            }
+                          }
+
+                          setSelectedContest((prev) => ({
+                            ...prev,
+                            time: value,
+                          }));
+                        }}
+                        placeholder="e.g., 2:30 PM"
+                        className="w-full"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Format: HH:MM AM/PM (e.g., 2:30 PM)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-duration" className="sm:text-right">
+                      Duration (min)
+                    </Label>
+                    <Input
+                      id="edit-duration"
+                      name="duration"
+                      type="number"
+                      value={selectedContest.duration}
+                      onChange={handleEditChange}
+                      className="sm:col-span-3"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-platform" className="sm:text-right">
+                      Platform
+                    </Label>
+                    <Input
+                      id="edit-platform"
+                      name="platform"
+                      value={selectedContest.platform}
+                      onChange={handleEditChange}
+                      className="sm:col-span-3"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-contestLink" className="sm:text-right">
+                      Contest Link
+                    </Label>
+                    <Input
+                      id="edit-contestLink"
+                      name="contestLink"
+                      value={selectedContest.contestLink}
+                      onChange={handleEditChange}
+                      className="sm:col-span-3"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label
+                      htmlFor="edit-difficultyLevel"
+                      className="sm:text-right"
+                    >
+                      Difficulty
+                    </Label>
+                    <Input
+                      id="edit-difficultyLevel"
+                      name="difficultyLevel"
+                      value={selectedContest.difficultyLevel || ""}
+                      onChange={handleEditChange}
+                      className="sm:col-span-3"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-4">
+                    <Label htmlFor="edit-contestType" className="sm:text-right">
+                      Contest Type
+                    </Label>
+                    <select
+                      id="edit-contestType"
+                      name="contestType"
+                      value={selectedContest.contestType || "individual"}
+                      onChange={handleEditChange}
+                      className="sm:col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="team">Team</option>
+                    </select>
+                  </div>
                 </div>
                 <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
                   <Button
@@ -863,7 +1145,19 @@ const ContestManagementSection = () => {
                                   key={index}
                                   className="text-muted-foreground"
                                 >
-                                  User ID: {participant.user || participant}
+                                  {/* Display user name if populated from API, otherwise show ID */}
+                                  {participant.user &&
+                                  typeof participant.user === "object" ? (
+                                    <span>
+                                      {participant.user.name ||
+                                        participant.user.username ||
+                                        "Anonymous User"}
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      User ID: {participant.user || participant}
+                                    </span>
+                                  )}
                                   {participant.teamName && (
                                     <span className="ml-2 text-primary">
                                       Team: {participant.teamName}
