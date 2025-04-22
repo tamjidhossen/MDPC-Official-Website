@@ -17,6 +17,8 @@ import eventRoutes from "./routes/event.routes.js";
 import contestRoutes from "./routes/contest.routes.js";
 import resourceRoutes from "./routes/resource.routes.js";
 import codeforcesRoutes from "./routes/codeforces.routes.js";
+import problemRoutes from "./routes/problem.routes.js";
+import judgeRoutes from "./routes/judge.routes.js";
 
 const app = express();
 
@@ -68,6 +70,8 @@ app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/contests", contestRoutes);
 app.use("/api/v1/resources", resourceRoutes);
 app.use("/api/v1/codeforces", codeforcesRoutes);
+app.use("/api/v1/problems", problemRoutes);
+app.use("/api/v1/judge", judgeRoutes);
 
 // Health check route
 app.get("/health", (req, res) => {

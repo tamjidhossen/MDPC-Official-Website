@@ -73,14 +73,6 @@ export const createContest = asyncHandler(async (req, res) => {
     if (!Date.parse(registrationDeadline)) {
       throw new ApiError(400, "Invalid registration deadline format");
     }
-
-    // Registration deadline should be before the contest date
-    if (new Date(registrationDeadline) >= new Date(date)) {
-      throw new ApiError(
-        400,
-        "Registration deadline must be before contest date"
-      );
-    }
   }
 
   // Validate contestType if provided
@@ -218,6 +210,7 @@ export const getAllContests = asyncHandler(async (req, res) => {
 // @access  Public
 export const getContest = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { userId } = req.query; // Optional userId can be passed as query parameter
 
   // Find contest by ID
   const contest = await Contest.findById(id);
@@ -226,15 +219,12 @@ export const getContest = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Contest not found");
   }
 
-  // Check if user is registered for the contest
+  // Check if user ID was provided and if that user is registered
   let isRegistered = false;
-
-  if (req.user) {
-    // Check if user is in participants list
+  if (userId) {
     isRegistered = contest.participants.some(
       (participant) =>
-        participant.user &&
-        participant.user.toString() === req.user._id.toString()
+        participant.user && participant.user.toString() === userId.toString()
     );
   }
 
@@ -320,15 +310,6 @@ export const updateContest = asyncHandler(async (req, res) => {
     if (!Date.parse(registrationDeadline)) {
       throw new ApiError(400, "Invalid registration deadline format");
     }
-
-    // Registration deadline should be before the contest date
-    const contestDate = date ? new Date(date) : contest.date;
-    if (new Date(registrationDeadline) >= contestDate) {
-      throw new ApiError(
-        400,
-        "Registration deadline must be before contest date"
-      );
-    }
   }
 
   // Validate contestType if provided
@@ -400,11 +381,10 @@ export const deleteContest = asyncHandler(async (req, res) => {
 
 // @desc    Register for a contest
 // @route   POST /api/v1/contests/:id/register
-// @access  Private
+// @access  Public
 export const registerForContest = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user._id;
-  const { teamName, teamMembers } = req.body;
+  const { userId, teamName, teamMembers } = req.body;
 
   // Find contest by ID
   const contest = await Contest.findById(id);
@@ -413,62 +393,18 @@ export const registerForContest = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Contest not found");
   }
 
-  // Check if registration is still open
-  if (!contest.registrationStatus) {
-    throw new ApiError(400, "Registration for this contest is closed");
-  }
-
-  // Check if registration deadline has passed
-  if (
-    contest.registrationDeadline &&
-    new Date() > new Date(contest.registrationDeadline)
-  ) {
-    throw new ApiError(400, "Registration deadline has passed");
-  }
-
-  // Check if user is already registered
-  const isAlreadyRegistered = contest.participants.some(
-    (participant) =>
-      participant.user && participant.user.toString() === userId.toString()
-  );
-
-  if (isAlreadyRegistered) {
-    throw new ApiError(400, "You are already registered for this contest");
-  }
-
-  // Handle registration based on contest type
+  // Add participant with minimal validation
   if (contest.contestType === ContestTypes.INDIVIDUAL) {
     // Individual registration
-    contest.participants.push({ user: userId });
-  } else if (contest.contestType === ContestTypes.TEAM) {
-    // Team registration - validate team info
-    if (!teamName) {
-      throw new ApiError(400, "Team name is required for team contests");
-    }
-
-    if (!teamMembers || !teamMembers.length) {
-      throw new ApiError(400, "Team members are required for team contests");
-    }
-
-    // Verify all team members exist
-    for (const memberId of teamMembers) {
-      const memberExists = await User.exists({
-        _id: memberId,
-        status: "active",
-      });
-      if (!memberExists) {
-        throw new ApiError(
-          404,
-          `Team member with ID ${memberId} not found or not active`
-        );
-      }
-    }
-
-    // Add team registration
     contest.participants.push({
-      user: userId, // Team leader
-      teamName,
-      teamMembers,
+      user: userId || new mongoose.Types.ObjectId(),
+    });
+  } else {
+    // Team registration
+    contest.participants.push({
+      user: userId || new mongoose.Types.ObjectId(),
+      teamName: teamName || "Team " + Date.now(),
+      teamMembers: teamMembers || [],
     });
   }
 
@@ -527,4 +463,168 @@ export const addContestResults = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(200, { contest }, "Contest results added successfully")
     );
+});
+
+// @desc    Get contest lobby information (countdown or problems)
+// @route   GET /api/v1/contests/:id/lobby
+// @access  Public
+export const getContestLobby = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.query; // Optional user ID can be passed as query param
+
+  // Find contest by ID with problems populated
+  const contest = await Contest.findById(id)
+    .populate("problems", "name difficulty")
+    .populate({
+      path: "participants.user",
+      select: "name username",
+    });
+
+  if (!contest) {
+    throw new ApiError(404, "Contest not found");
+  }
+
+  // Calculate contest timing information
+  const now = new Date();
+  const startTime = new Date(contest.date);
+  const endTime = new Date(
+    startTime.getTime() + parseInt(contest.duration) * 60000
+  );
+
+  const contestStatus = {
+    isStarted: now >= startTime,
+    isEnded: now >= endTime,
+    timeUntilStart: Math.max(0, startTime - now),
+    timeUntilEnd: Math.max(0, endTime - now),
+    startTime,
+    endTime,
+  };
+
+  // Return appropriate data based on contest status
+  const responseData = {
+    contest: {
+      _id: contest._id,
+      title: contest.title,
+      description: contest.description,
+      startTime,
+      duration: contest.duration,
+      status: contest.status,
+      isJudged: contest.isJudged || false,
+    },
+    contestStatus,
+    problems: contest.problems, // Always include problems
+  };
+
+  // Include participant count
+  responseData.participantCount = contest.participants.length;
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        responseData,
+        "Contest lobby information fetched successfully"
+      )
+    );
+});
+
+// @desc    Toggle judge functionality for a contest
+// @route   PATCH /api/v1/contests/:id/toggle-judge
+// @access  Admin
+export const toggleContestJudge = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { isJudged } = req.body;
+
+  if (isJudged === undefined) {
+    throw new ApiError(400, "isJudged field is required");
+  }
+
+  const contest = await Contest.findById(id);
+
+  if (!contest) {
+    throw new ApiError(404, "Contest not found");
+  }
+
+  contest.isJudged = isJudged;
+  await contest.save();
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { contest },
+        `Contest judge functionality ${isJudged ? "enabled" : "disabled"} successfully`
+      )
+    );
+});
+
+// @desc    Remove a participant from a contest
+// @route   DELETE /api/v1/contests/:id/participants/:participantId
+// @access  Admin
+export const removeParticipant = asyncHandler(async (req, res) => {
+  const { id, participantId } = req.params;
+
+  const contest = await Contest.findById(id);
+
+  if (!contest) {
+    throw new ApiError(404, "Contest not found");
+  }
+
+  const participantIndex = contest.participants.findIndex(
+    (p) => p._id.toString() === participantId
+  );
+
+  if (participantIndex === -1) {
+    throw new ApiError(404, "Participant not found in this contest");
+  }
+
+  contest.participants.splice(participantIndex, 1);
+  await contest.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Participant removed successfully"));
+});
+
+// @desc    Unregister from a contest
+// @route   DELETE /api/v1/contests/:id/register
+// @access  Public
+export const unregisterFromContest = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId, participantId } = req.body;
+
+  const contest = await Contest.findById(id);
+
+  if (!contest) {
+    throw new ApiError(404, "Contest not found");
+  }
+
+  // Find the participant to remove
+  let participantIndex = -1;
+
+  if (userId) {
+    participantIndex = contest.participants.findIndex(
+      (p) => p.user && p.user.toString() === userId.toString()
+    );
+  } else if (participantId) {
+    participantIndex = contest.participants.findIndex(
+      (p) => p._id.toString() === participantId.toString()
+    );
+  } else {
+    // If no specific user/participant is given, remove the last added participant
+    participantIndex = contest.participants.length - 1;
+  }
+
+  if (participantIndex === -1) {
+    throw new ApiError(404, "Participant not found in this contest");
+  }
+
+  contest.participants.splice(participantIndex, 1);
+  await contest.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Unregistered from contest successfully"));
 });

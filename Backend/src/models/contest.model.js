@@ -49,6 +49,15 @@ const contestSchema = new mongoose.Schema(
         score: {
           type: Number,
         },
+        teamName: {
+          type: String,
+        },
+        teamMembers: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        ],
       },
     ],
     resultsData: {
@@ -87,8 +96,32 @@ const contestSchema = new mongoose.Schema(
       enum: ["upcoming", "ongoing", "completed", "cancelled"],
       default: "upcoming",
     },
+    // Added fields for judging functionality
+    problems: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Problem",
+      },
+    ],
+    isJudged: {
+      type: Boolean,
+      default: false,
+    },
+    startTime: {
+      type: Date,
+      get: function () {
+        return this.date;
+      },
+    },
+    visibleAfterEnd: {
+      type: Boolean,
+      default: true,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { getters: true },
+  }
 );
 
 export const Contest = mongoose.model("Contest", contestSchema);

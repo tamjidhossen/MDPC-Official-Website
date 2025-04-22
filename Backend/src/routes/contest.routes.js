@@ -7,60 +7,26 @@ import {
   deleteContest,
   registerForContest,
   addContestResults,
+  getContestLobby,
+  toggleContestJudge,
+  removeParticipant,
+  unregisterFromContest,
 } from "../controllers/contest.controller.js";
-import {
-  verifyJWT,
-  isAdmin,
-  isActive,
-} from "../middlewares/auth.middleware.js";
 import { upload } from "../utils/fileUpload.js";
-import {
-  createContestValidator,
-  updateContestValidator,
-  contestRegistrationValidator,
-  contestResultsValidator,
-  idParamValidator,
-} from "../middlewares/validators/contest.validator.js";
 
 const router = Router();
 
-// Public routes
+// All routes made public without authentication
 router.get("/", getAllContests);
-router.get("/:id", idParamValidator, getContest);
-
-// Protected routes
-router.post(
-  "/:id/register",
-  verifyJWT,
-  isActive,
-  contestRegistrationValidator,
-  registerForContest
-);
-
-// Admin routes
-router.post(
-  "/",
-  verifyJWT,
-  isAdmin,
-  upload.single("image"),
-  createContestValidator,
-  createContest
-);
-router.put(
-  "/:id",
-  verifyJWT,
-  isAdmin,
-  upload.single("image"),
-  updateContestValidator,
-  updateContest
-);
-router.delete("/:id", verifyJWT, isAdmin, idParamValidator, deleteContest);
-router.post(
-  "/:id/results",
-  verifyJWT,
-  isAdmin,
-  contestResultsValidator,
-  addContestResults
-);
+router.get("/:id", getContest);
+router.post("/:id/register", registerForContest);
+router.get("/:id/lobby", getContestLobby);
+router.delete("/:id/register", unregisterFromContest);
+router.post("/", upload.single("image"), createContest);
+router.put("/:id", upload.single("image"), updateContest);
+router.delete("/:id", deleteContest);
+router.post("/:id/results", addContestResults);
+router.patch("/:id/toggle-judge", toggleContestJudge);
+router.delete("/:id/participants/:participantId", removeParticipant);
 
 export default router;
