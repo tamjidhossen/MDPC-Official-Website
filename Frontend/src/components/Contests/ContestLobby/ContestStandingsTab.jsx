@@ -17,37 +17,38 @@ const ContestStandingsTab = ({ contestId }) => {
   const [standings, setStandings] = useState([]);
   const [problems, setProblems] = useState([]);
 
+  const fetchStandings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/judge/contests/${contestId}/standings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setStandings(response.data.data.standings || []);
+      setProblems(response.data.data.problems || []);
+    } catch (error) {
+      console.error("Error fetching standings:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to load standings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStandings = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-
-        const response = await axios.get(
-          `${
-            import.meta.env.VITE_API_URL
-          }/judge/contests/${contestId}/standings`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        setStandings(response.data.data.standings || []);
-        setProblems(response.data.data.problems || []);
-      } catch (error) {
-        console.error("Error fetching standings:", error);
-        toast({
-          title: "Error",
-          description:
-            error.response?.data?.message || "Failed to load standings",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStandings();
+    // Set up auto-refresh every 30 seconds
+    const refreshInterval = setInterval(fetchStandings, 30000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(refreshInterval);
   }, [contestId, toast]);
 
   if (loading) {

@@ -172,24 +172,19 @@ const ContestDetailPage = () => {
 
           {/* Registration/Entry Button */}
           <div className="flex flex-wrap items-center gap-4 mb-8">
-            <Button
-              onClick={
-                hasStarted
-                  ? () => (window.location.href = `/contests/${id}/lobby`)
-                  : handleRegister
-              }
-              className="w-full md:w-auto"
-            >
-              {hasStarted ? (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Enter Contest Lobby
-                </>
-              ) : (
-                "Register Now"
-              )}
-            </Button>
-            {isRegistered && !hasStarted && (
+            {hasStarted ? (
+              <Button
+                onClick={() => (window.location.href = `/contests/${id}/lobby`)}
+                className="w-full md:w-auto"
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                Enter Contest Lobby
+              </Button>
+            ) : !isRegistered ? (
+              <Button onClick={handleRegister} className="w-full md:w-auto">
+                Register Now
+              </Button>
+            ) : (
               <Badge variant="outline" className="py-2 px-4">
                 You are registered
               </Badge>

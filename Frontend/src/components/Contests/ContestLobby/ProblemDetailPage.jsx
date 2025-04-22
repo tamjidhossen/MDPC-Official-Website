@@ -20,6 +20,8 @@ import {
 } from "../../ui/select";
 import axios from "axios";
 
+import { useAuth } from "@/context/AuthContext";
+
 const ProblemDetailPage = () => {
   const { contestId, problemId } = useParams();
   const navigate = useNavigate();
@@ -32,8 +34,14 @@ const ProblemDetailPage = () => {
   const [language, setLanguage] = useState("cpp");
   const [submissionResult, setSubmissionResult] = useState(null);
 
+    const { user, isAuthenticated } = useAuth();
+
   // Create a temp user ID if needed
   const getUserId = () => {
+    if (isAuthenticated() && user) {
+      return user._id; // Use the authenticated user's ID
+    }
+
     let tempUserId = localStorage.getItem("tempUserId");
     if (!tempUserId) {
       tempUserId = "user_" + Date.now();
@@ -168,80 +176,140 @@ const ProblemDetailPage = () => {
   return (
     <div className="container mx-auto my-8 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Back to lobby button */}
-        <div className="mb-6">
+        {/* Better navigation with sticky controls */}
+        <div className="sticky top-4 z-10 mb-6 flex justify-between items-center bg-background/95 backdrop-blur-sm p-3 rounded-lg shadow-sm border">
           <Button
             variant="outline"
             onClick={() => navigate(`/contests/${contestId}/lobby`)}
+            className="flex items-center gap-2"
           >
-            ← Back to Contest
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            Back to Contest
           </Button>
+          {problem.difficulty && (
+            <div className="flex gap-2">
+              <Badge variant={problem.difficulty === "Easy" ? "success" : problem.difficulty === "Medium" ? "warning" : "destructive"} className="px-3 py-1">
+                {problem.difficulty}
+              </Badge>
+              {problem.timeLimit && (
+                <Badge variant="outline" className="px-3 py-1 flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  {problem.timeLimit}ms
+                </Badge>
+              )}
+              {problem.memoryLimit && (
+                <Badge variant="outline" className="px-3 py-1 flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                    <line x1="12" y1="6" x2="12" y2="10"/>
+                    <line x1="12" y1="14" x2="12" y2="18"/>
+                  </svg>
+                  {problem.memoryLimit}MB
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Problem description section */}
+          {/* Enhanced problem description section */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-2xl">{problem.name}</CardTitle>
-                    <CardDescription>
-                      <Badge className="mt-2">
-                        {problem.difficulty || "Medium"}
-                      </Badge>
-                      {problem.timeLimit && (
-                        <Badge className="ml-2 mt-2">
-                          Time: {problem.timeLimit}ms
-                        </Badge>
-                      )}
-                      {problem.memoryLimit && (
-                        <Badge className="ml-2 mt-2">
-                          Memory: {problem.memoryLimit}MB
-                        </Badge>
-                      )}
-                    </CardDescription>
-                  </div>
-                </div>
+            <Card className="overflow-hidden border-t-4 border-t-primary">
+              <CardHeader className="bg-muted/40">
+                <CardTitle className="text-2xl font-bold">{problem.name}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="prose max-w-none dark:prose-invert">
-                  <h3>Description</h3>
-                  <p>{problem.description}</p>
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 border-b pb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+                      </svg>
+                      Description
+                    </h3>
+                    <pre className="mt-3">{problem.description}</pre>
+                  </div>
 
-                  <h3>Input Format</h3>
-                  <p>{problem.inputFormat}</p>
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 border-b pb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                      </svg>
+                      Input Format
+                    </h3>
+                    <pre className="mt-3">{problem.inputFormat}</pre>
+                  </div>
 
-                  <h3>Output Format</h3>
-                  <p>{problem.outputFormat}</p>
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 border-b pb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                      </svg>
+                      Output Format
+                    </h3>
+                    <pre className="mt-3">{problem.outputFormat}</pre>
+                  </div>
 
-                  {/* Display example test cases */}
+                  {/* Enhanced example test cases */}
                   {problem.testCases &&
-                    problem.testCases.filter((tc) => tc.isExample).length >
-                      0 && (
-                      <>
-                        <h3>Examples</h3>
+                    problem.testCases.filter((tc) => tc.isExample).length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold flex items-center gap-2 border-b pb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                          <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Examples
+                      </h3>
+                      <div className="mt-4 grid gap-6">
                         {problem.testCases
                           .filter((tc) => tc.isExample)
                           .map((testCase, idx) => (
-                            <div key={idx} className="mb-6">
-                              <h4>Example {idx + 1}</h4>
-                              <div className="bg-muted p-4 rounded-md mb-2">
-                                <h5 className="font-semibold">Input:</h5>
-                                <pre className="whitespace-pre-wrap">
+                          <div key={idx} className="bg-muted/30 rounded-lg overflow-hidden border transition-all hover:shadow-md">
+                            <div className="bg-primary/10 px-4 py-2 font-medium">
+                              Example {idx + 1}
+                            </div>
+                            <div className="p-4 grid gap-4">
+                              <div>
+                                <div className="flex items-center gap-2 text-sm font-medium mb-2 text-muted-foreground">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="m15 15-6 6"/>
+                                    <path d="m21 15-12 12"/>
+                                    <path d="M8 9h7v7"/>
+                                    <path d="M9 1v8"/>
+                                    <path d="M1 9h8"/>
+                                  </svg>
+                                  Input:
+                                </div>
+                                <pre className="whitespace-pre-wrap bg-muted/50 p-3 rounded border text-sm overflow-x-auto">
                                   {testCase.input}
                                 </pre>
                               </div>
-                              <div className="bg-muted p-4 rounded-md">
-                                <h5 className="font-semibold">Output:</h5>
-                                <pre className="whitespace-pre-wrap">
+                              <div>
+                                <div className="flex items-center gap-2 text-sm font-medium mb-2 text-muted-foreground">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="m9 9-6 6"/>
+                                    <path d="m3 9 6 6"/>
+                                    <path d="M15 15h7v7"/>
+                                    <path d="M15 9h7v7"/>
+                                  </svg>
+                                  Output:
+                                </div>
+                                <pre className="whitespace-pre-wrap bg-muted/50 p-3 rounded border text-sm overflow-x-auto">
                                   {testCase.output}
                                 </pre>
                               </div>
                             </div>
-                          ))}
-                      </>
-                    )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

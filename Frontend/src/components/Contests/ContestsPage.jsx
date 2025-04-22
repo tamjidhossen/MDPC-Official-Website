@@ -15,6 +15,7 @@ import { Clock, Calendar, Users, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contestApi } from "@/services/api";
 import { format } from "date-fns";
+import { useAuth } from "../../context/AuthContext";
 
 const ContestsPage = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
@@ -22,6 +23,25 @@ const ContestsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const [registering, setRegistering] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+
+
+  // Get user ID (either authenticated user ID or temporary ID for non-logged in users)
+  const getUserId = () => {
+    if (isAuthenticated() && user) {
+      return user._id; // Use the authenticated user's ID
+    }
+
+    // Fallback to temporary ID for non-authenticated users
+    let tempUserId = localStorage.getItem("tempUserId");
+    if (!tempUserId) {
+      tempUserId = "user_" + Date.now();
+      localStorage.setItem("tempUserId", tempUserId);
+    }
+    return tempUserId;
+  };
 
   useEffect(() => {
     const fetchContests = async () => {
@@ -191,7 +211,7 @@ const ContestsPage = () => {
                           </div> */}
                         </div>
                       </CardContent>
-                      <CardFooter>
+                      {/* <CardFooter>
                         <Button
                           className="w-full"
                           onClick={(e) => {
@@ -201,7 +221,7 @@ const ContestsPage = () => {
                         >
                           Register Now
                         </Button>
-                      </CardFooter>
+                      </CardFooter> */}
                     </Card>
                   ))}
                 </div>

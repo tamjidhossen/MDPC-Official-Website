@@ -181,39 +181,46 @@ const ContestLobbyPage = () => {
           )}
         </div>
 
-        {/* Tabs for problems, standings, and submissions */}
-        <div className="mt-8">
-          <Tabs
-            defaultValue="problems"
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <div className="overflow-x-auto">
-              <TabsList className="w-full md:w-auto justify-start">
-                <TabsTrigger value="problems">Problems</TabsTrigger>
-                <TabsTrigger value="standings">Standings</TabsTrigger>
-                <TabsTrigger value="submissions">My Submissions</TabsTrigger>
-              </TabsList>
-            </div>
+        {/* Tabs for problems, standings, and submissions - only shown when contest has started */}
+        {contestStatus.isStarted ? (
+          <div className="mt-8">
+            <Tabs
+              defaultValue="problems"
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <div className="overflow-x-auto">
+                <TabsList className="w-full md:w-auto justify-start">
+                  <TabsTrigger value="problems">Problems</TabsTrigger>
+                  <TabsTrigger value="standings">Standings</TabsTrigger>
+                  <TabsTrigger value="submissions">My Submissions</TabsTrigger>
+                </TabsList>
+              </div>
 
-            <TabsContent value="problems">
-              <ContestProblemsTab
-                contestId={id}
-                problems={problems || []}
-                isStarted={true}
-              />
-            </TabsContent>
+              <TabsContent value="problems">
+                <ContestProblemsTab
+                  contestId={id}
+                  problems={problems || []}
+                  isStarted={true}
+                />
+              </TabsContent>
 
-            <TabsContent value="standings">
-              <ContestStandingsTab contestId={id} />
-            </TabsContent>
+              <TabsContent value="standings">
+                <ContestStandingsTab contestId={id} />
+              </TabsContent>
 
-            <TabsContent value="submissions">
-              <ContestSubmissionsTab contestId={id} userId={getUserId()} />
-            </TabsContent>
-          </Tabs>
-        </div>
+              <TabsContent value="submissions">
+                <ContestSubmissionsTab contestId={id} userId={getUserId()} />
+              </TabsContent>
+            </Tabs>
+          </div>
+        ) : (
+          <div className="mt-8 text-center p-8 bg-muted rounded-lg">
+            <h3 className="text-xl font-semibold mb-2">Contest has not started yet</h3>
+            <p>Problems will be available once the contest begins.</p>
+          </div>
+        )}
       </div>
     </div>
   );
