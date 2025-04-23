@@ -1,4 +1,5 @@
 // src/components/Home/HomePage.jsx
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
@@ -9,31 +10,122 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Code, Trophy, Calendar, Book, Users, ArrowRight } from "lucide-react";
+import {
+  Code,
+  Trophy,
+  Calendar,
+  Book,
+  Users,
+  ArrowRight,
+  Loader2,
+} from "lucide-react";
+import { eventApi, resourceApi } from "@/services/api";
+import { format } from "date-fns";
 
 const HomePage = () => {
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState({
+    events: true,
+    resources: true,
+  });
+  const [error, setError] = useState({
+    events: null,
+    resources: null,
+  });
+
+  // Fetch upcoming events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await eventApi.getAll({
+          status: "upcoming",
+          limit: 2, // Only fetch 2 events for the homepage
+          sort: "date", // Sort by date to get the nearest events
+        });
+
+        setUpcomingEvents(response.data.events || []);
+        setError((prev) => ({ ...prev, events: null }));
+      } catch (err) {
+        console.error("Error fetching upcoming events:", err);
+        setError((prev) => ({
+          ...prev,
+          events: "Failed to load upcoming events.",
+        }));
+      } finally {
+        setLoading((prev) => ({ ...prev, events: false }));
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Fetch resources
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await resourceApi.getAll({
+          limit: 3, // Only fetch 3 resources for the homepage
+        });
+
+        let resourceData = [];
+        if (response.data?.resources) {
+          resourceData = response.data.resources;
+        } else if (response.data?.data?.resources) {
+          resourceData = response.data.data.resources;
+        }
+
+        setResources(resourceData);
+        setError((prev) => ({ ...prev, resources: null }));
+      } catch (err) {
+        console.error("Error fetching resources:", err);
+        setError((prev) => ({
+          ...prev,
+          resources: "Failed to load resources.",
+        }));
+      } finally {
+        setLoading((prev) => ({ ...prev, resources: false }));
+      }
+    };
+
+    fetchResources();
+  }, []);
+
   const features = [
     {
       icon: <Trophy className="h-10 w-10 text-primary" />,
       title: "Competitive Programming",
-      description: "Train for contests like ICPC, IUPC, NCPC with our structured resources and workshops",
+      description:
+        "Train for contests like ICPC, IUPC, NCPC with our structured resources and workshops",
     },
     {
       icon: <Calendar className="h-10 w-10 text-primary" />,
       title: "Regular Contests",
-      description: "Participate in our weekly topic-based contests and monthly full-length programming contests",
+      description:
+        "Participate in our weekly topic-based contests and monthly full-length programming contests",
     },
     {
       icon: <Users className="h-10 w-10 text-primary" />,
       title: "Community",
-      description: "Join a vibrant community of programmers to learn, grow and excel together",
+      description:
+        "Join a vibrant community of programmers to learn, grow and excel together",
     },
     {
       icon: <Code className="h-10 w-10 text-primary" />,
       title: "Learning Resources",
-      description: "Access curated resources for all skill levels from beginner to advanced competitive programming",
+      description:
+        "Access curated resources for all skill levels from beginner to advanced competitive programming",
     },
   ];
+
+  // Helper function to format date
+  const formatEventDate = (dateString, timeString) => {
+    if (!dateString) return "TBA";
+
+    const date = new Date(dateString);
+    const formattedDate = format(date, "MMM d, yyyy");
+    return timeString ? `${formattedDate} • ${timeString}` : formattedDate;
+  };
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -43,8 +135,9 @@ const HomePage = () => {
           Mid-Day Programming Club
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          A student-led competitive programming club at JKKNIU dedicated to fostering programming
-          skills through contests, resources, and community.
+          A student-led competitive programming club at JKKNIU dedicated to
+          fostering programming skills through contests, resources, and
+          community.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Button asChild size="lg">
@@ -77,43 +170,55 @@ const HomePage = () => {
       {/* Upcoming Contest Section */}
       <section className="py-16">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold">Upcoming Contests</h2>
+          <h2 className="text-3xl font-bold">Upcoming Events</h2>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/contests">
+            <Link to="/events">
               View All <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Algorithm Contest</CardTitle>
-              <CardDescription>May 25, 2024 • 3:00 PM</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Topic-focused contest on Dynamic Programming with 6 problems of varying difficulty levels.</p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm">
-                Register
-              </Button>
-            </CardFooter>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly IUPC Style Contest</CardTitle>
-              <CardDescription>June 2, 2024 • 10:00 AM</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>5-hour long contest with 10 problems covering various algorithms and data structures.</p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm">
-                Register
-              </Button>
-            </CardFooter>
-          </Card>
+          {loading.events ? (
+            <div className="col-span-2 flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error.events ? (
+            <div className="col-span-2 text-center py-8">
+              <p className="text-muted-foreground">{error.events}</p>
+            </div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="col-span-2 text-center py-8">
+              <p className="text-muted-foreground">
+                No upcoming events scheduled at the moment.
+              </p>
+            </div>
+          ) : (
+            upcomingEvents.map((event) => (
+              <Card key={event._id}>
+                <CardHeader>
+                  <CardTitle>{event.title}</CardTitle>
+                  <CardDescription>
+                    {formatEventDate(event.date, event.time)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>
+                    {event.description.length > 120
+                      ? `${event.description.substring(0, 120)}...`
+                      : event.description}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/events/${event._id}`}>
+                      {event.registrationOpen ? "Register" : "View Details"}
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))
+          )}
         </div>
       </section>
 
@@ -129,48 +234,45 @@ const HomePage = () => {
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>CP Roadmap</CardTitle>
-              <CardDescription>For beginners to advanced</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>A complete guideline to becoming proficient in competitive programming with topic-wise resources.</p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/resources/cp-roadmap">Read More</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Graph Algorithms</CardTitle>
-              <CardDescription>Intermediate level</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Learn about traversals, shortest paths, minimum spanning trees and network flows.</p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/resources/graph-algorithms">Read More</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Dynamic Programming</CardTitle>
-              <CardDescription>Intermediate level</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Master DP with step-by-step explanations and practice problems from various online judges.</p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/resources/dynamic-programming">Read More</Link>
-              </Button>
-            </CardFooter>
-          </Card>
+          {loading.resources ? (
+            <div className="col-span-3 flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error.resources ? (
+            <div className="col-span-3 text-center py-8">
+              <p className="text-muted-foreground">{error.resources}</p>
+            </div>
+          ) : resources.length === 0 ? (
+            <div className="col-span-3 text-center py-8">
+              <p className="text-muted-foreground">
+                No resources available at the moment.
+              </p>
+            </div>
+          ) : (
+            resources.map((resource) => (
+              <Card key={resource._id}>
+                <CardHeader>
+                  <CardTitle>{resource.title}</CardTitle>
+                  <CardDescription>{resource.level} level</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>
+                    {resource.content && resource.content.length > 120
+                      ? `${resource.content
+                          .substring(0, 120)
+                          .replace(/<[^>]*>?/gm, "")}...`
+                      : resource.content?.replace(/<[^>]*>?/gm, "") ||
+                        "No description available."}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/resources/${resource._id}`}>Read More</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))
+          )}
         </div>
       </section>
 
@@ -178,11 +280,16 @@ const HomePage = () => {
       <section className="my-16 rounded-xl bg-primary/5 p-10 text-center">
         <h2 className="text-3xl font-bold">Join Our Community</h2>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          Connect with fellow programmers, participate in discussions, and get help with programming problems.
+          Connect with fellow programmers, participate in discussions, and get
+          help with programming problems.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Button asChild>
-            <a href="https://discord.gg/yourlink" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://discord.gg/yourlink"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Join Discord Server
             </a>
           </Button>
