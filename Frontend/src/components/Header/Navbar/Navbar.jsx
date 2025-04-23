@@ -140,7 +140,7 @@ const Navbar = () => {
     { title: "Events", path: "/events" },
     { title: "Resources", path: "/resources" },
     { title: "Join", path: "/join" },
-    { title: "Contact", path: "/contact" },
+    // { title: "Contact", path: "/contact" },
   ];
 
   const isActive = (path) => {
